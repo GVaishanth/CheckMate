@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('../../src/assets/fonts/grotesk-var.woff2') format('woff2');
+    font-weight: 500 700;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('../../src/assets/fonts/mono-var.woff2') format('woff2');
+    font-weight: 400 600;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    background: #08090c;
+    font-family: 'Space Grotesk', sans-serif;
+    position: relative;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(210,168,80,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(210,168,80,0.05) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .knight { position: absolute; right: 60px; bottom: 40px; opacity: 0.9; }
+  .content { position: absolute; left: 72px; top: 118px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 20px; letter-spacing: 0.35em;
+    color: #8b93a5; margin-bottom: 26px;
+  }
+  h1 { font-size: 96px; line-height: 1.02; color: #e9e4d6; font-weight: 700; letter-spacing: 0.01em; }
+  h1 .accent { color: #d2a850; }
+  .sub { margin-top: 30px; font-size: 24px; color: #b7bcc9; font-weight: 500; max-width: 640px; line-height: 1.45; }
+  .chips { position: absolute; left: 72px; bottom: 64px; display: flex; gap: 14px; }
+  .chip {
+    font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 0.12em;
+    color: #d2a850; border: 1px solid rgba(210,168,80,0.45); border-radius: 4px;
+    padding: 8px 14px; background: rgba(210,168,80,0.06);
+  }
+  .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: #d2a850; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="bar"></div>
+  <svg class="knight" width="360" height="360" viewBox="0 0 48 48" aria-hidden="true">
+    <path d="M14.6 39.5c-.5-6.5.2-11.4 2.6-15.4l-4.4 2c-1.8.8-3.4-.9-2.4-2.5l1.2-1.9 4-1.6c3-4.4 5.5-7 9.7-9.1l-.6-3.4 3.1 1.9 2.4-2.5.6 3.5c4.7 2.6 6.6 8 6.9 15.2.2 4.4.1 9.2 0 13.8z" fill="#d2a850" fill-opacity="0.14"/>
+    <path d="M14.6 39.5c-.5-6.5.2-11.4 2.6-15.4l-4.4 2c-1.8.8-3.4-.9-2.4-2.5l1.2-1.9 4-1.6c3-4.4 5.5-7 9.7-9.1l-.6-3.4 3.1 1.9 2.4-2.5.6 3.5c4.7 2.6 6.6 8 6.9 15.2.2 4.4.1 9.2 0 13.8z" fill="none" stroke="#d2a850" stroke-width="0.5" stroke-opacity="0.6"/>
+    <circle cx="29.4" cy="20.2" r="1.1" fill="#d2a850"/>
+    <circle cx="24.9" cy="16.6" r="1.1" fill="#d2a850"/>
+  </svg>
+  <div class="content">
+    <div class="eyebrow">BROWSER-NATIVE CHESS ARENA</div>
+    <h1>THINK. CALCULATE.<br><span class="accent">CHECKMATE.</span></h1>
+    <div class="sub">Six local AI opponents · Engine-verified puzzles · Elo estimation · Peer-to-peer multiplayer. No servers, no accounts.</div>
+  </div>
+  <div class="chips">
+    <span class="chip">100% OFFLINE-CAPABLE</span>
+    <span class="chip">NO BACKEND</span>
+    <span class="chip">OPEN SOURCE</span>
+  </div>
+</body>
+</html>

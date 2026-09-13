@@ -1,0 +1,234 @@
+/* ============================================================
+   Base: reset, typography, primitives, motion
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--text-1);
+}
+
+p { margin: 0; }
+
+a {
+  color: var(--text-1);
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font: inherit;
+  color: var(--text-1);
+}
+
+::selection {
+  background: rgba(210, 168, 80, 0.32);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-1);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* ------------------------------------------------------------ layout */
+
+.container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--sp-5);
+}
+
+.page {
+  flex: 1;
+  padding: var(--sp-6) 0 var(--sp-8);
+  animation: page-in var(--t-med) both;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: clamp(24px, 3.4vw, 34px);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+}
+
+.page-sub {
+  color: var(--text-2);
+  max-width: 540px;
+  margin-top: var(--sp-2);
+  font-size: 13.5px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+/* ------------------------------------------------------------ utilities */
+
+.stack { display: flex; flex-direction: column; }
+.gap-4 { gap: 4px; }
+.gap-8 { gap: var(--sp-2); }
+.gap-12 { gap: var(--sp-3); }
+.gap-16 { gap: var(--sp-4); }
+.row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.wrap { flex-wrap: wrap; }
+.spread { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+.mono { font-family: var(--font-mono); }
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 5px;
+  border: 1px solid var(--line-2);
+  border-bottom-width: 2px;
+  border-radius: var(--r-1);
+  background: var(--bg-2);
+  color: var(--text-1);
+  white-space: nowrap;
+}
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+.small { font-size: 12.5px; }
+.tiny { font-size: 10.5px; }
+.center { text-align: center; }
+.up { text-transform: uppercase; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: var(--sp-2); }
+.ml-8 { margin-left: var(--sp-2); }
+.mt-16 { margin-top: var(--sp-4); }
+.mt-24 { margin-top: var(--sp-5); }
+.mb-24 { margin-bottom: var(--sp-5); }
+
+/* ------------------------------------------------------------ motion */
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes move-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  from { background-position: -200px 0; }
+  to { background-position: 200px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+[data-reduced-motion='true'] *,
+[data-reduced-motion='true'] *::before,
+[data-reduced-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

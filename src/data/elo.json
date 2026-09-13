@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "generated": "2026-09-12T15:28:12.173Z",
+  "rounds": [
+    {
+      "id": "t1",
+      "kind": "tactics",
+      "category": "tactics",
+      "fen": "2rk1br1/1Qpqpppp/5n2/1BpP4/5B2/4P3/PPPR1PPP/K5R1 w - - 3 31",
+      "sideToMove": "white",
+      "bestMove": "b5d7",
+      "prompt": "Find the strongest move for the side to play."
+    },
+    {
+      "id": "c1",
+      "kind": "mate",
+      "category": "calculation",
+      "fen": "2K1kbr1/3p2pp/rp1qN3/p3n3/1P2p3/5P2/P1P1P1PP/1R3B1R b - - 0 27",
+      "sideToMove": "black",
+      "mateIn": 2,
+      "bestMove": "a6a8",
+      "prompt": "A forced mate is available. Calculate it out."
+    },
+    {
+      "id": "e1",
+      "kind": "convert",
+      "category": "endgame",
+      "fen": "8/8/k7/2K5/5Q2/8/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "targetMoves": 6,
+      "defender": "apprentice",
+      "prompt": "Convert the queen ending — mate the lone king.",
+      "winThresholdCp": 700
+    },
+    {
+      "id": "t2",
+      "kind": "tactics",
+      "category": "tactics",
+      "fen": "1r4r1/p3kp1p/4pp2/3p4/8/3b4/PPnNNPPP/1R3KR1 b - - 1 29",
+      "sideToMove": "black",
+      "bestMove": "c2d4",
+      "prompt": "A tactical shot decides. Find it."
+    },
+    {
+      "id": "s1",
+      "kind": "consistency",
+      "category": "consistency",
+      "fen": "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+      "sideToMove": "white",
+      "targetMoves": 12,
+      "defender": "club",
+      "prompt": "No tactics here — play 12 solid moves. Precision is the test."
+    },
+    {
+      "id": "c2",
+      "kind": "mate",
+      "category": "calculation",
+      "fen": "1k2rr2/1Np3p1/Q7/4pp2/3n4/2R1P3/P1P2PPP/4KB1R w K - 1 36",
+      "sideToMove": "white",
+      "mateIn": 3,
+      "bestMove": "b7a5",
+      "prompt": "Deeper calculation: a forced win is on the board."
+    },
+    {
+      "id": "e2",
+      "kind": "convert",
+      "category": "endgame",
+      "fen": "8/7k/8/4K1R1/8/8/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "targetMoves": 6,
+      "defender": "club",
+      "prompt": "Convert the rook ending — technique under pressure.",
+      "winThresholdCp": 700
+    },
+    {
+      "id": "t3",
+      "kind": "tactics",
+      "category": "tactics",
+      "fen": "r1b1qb1r/pp2pppp/k7/3P4/1Q2BBn1/2N2N2/PPP2PPP/1R2K2R w K - 1 17",
+      "sideToMove": "white",
+      "bestMove": "e4d3",
+      "prompt": "The hardest shot of the test. Take your time."
+    }
+  ]
+}

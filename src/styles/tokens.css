@@ -1,0 +1,128 @@
+/* ============================================================
+   CHECKMATE — design tokens
+   Engine-room identity: near-black, ivory, one gold accent.
+   Sharp geometry, hairline structure, mono system text.
+   ============================================================ */
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/inter-var.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../assets/fonts/grotesk-var.woff2') format('woff2');
+  font-weight: 300 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../assets/fonts/mono-var.woff2') format('woff2');
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+:root {
+  /* Surfaces */
+  --bg-0: #08090c;
+  --bg-1: #0d0f14;
+  --bg-2: #12151d;
+  --bg-3: #191d27;
+  --line: #1c202a;
+  --line-2: #2a3040;
+
+  /* Text */
+  --text-1: #e8e4d6;
+  --text-2: #98a0ac;
+  --text-3: #5d6572;
+
+  /* Accent — muted gold: interaction, selection, focus. Nothing else. */
+  --accent: #d2a850;
+  --accent-hi: #e9c465;
+  --accent-soft: rgba(210, 168, 80, 0.13);
+  --accent-ink: #171207;
+
+  /* Signals */
+  --danger: #e05b52;
+  --danger-soft: rgba(224, 91, 82, 0.12);
+  --success: #6fbd88;
+  --success-soft: rgba(111, 189, 136, 0.11);
+
+  /* Typography */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 72px;
+
+  /* Radius — sharp */
+  --r-1: 2px;
+  --r-2: 4px;
+  --r-3: 8px;
+  /* legacy aliases */
+
+  /* Shadows — sparse, deep, never decorative */
+  --shadow-1: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 24px 64px rgba(0, 0, 0, 0.6);
+
+  /* Board (default theme: Carbon) */
+  --sq-light: #485062;
+  --sq-dark: #343b4a;
+  --board-frame: #0c0e13;
+  --board-line: #222836;
+  --coord: rgba(232, 228, 214, 0.42);
+
+  /* Motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 110ms var(--ease);
+  --t-med: 200ms var(--ease);
+  --t-slow: 420ms var(--ease);
+
+  --nav-h: 56px;
+  --content-max: 1200px;
+}
+
+/* Board themes */
+[data-board-theme='carbon'] {
+  --sq-light: #485062;
+  --sq-dark: #343b4a;
+}
+[data-board-theme='tournament'] {
+  --sq-light: #e6cfa2;
+  --sq-dark: #9a6b4a;
+  --coord: rgba(20, 16, 10, 0.55);
+}
+[data-board-theme='walnut'] {
+  --sq-light: #b28e60;
+  --sq-dark: #7d5a38;
+  --coord: rgba(24, 18, 10, 0.6);
+}
+[data-board-theme='fog'] {
+  --sq-light: #d8dee6;
+  --sq-dark: #96a2b2;
+  --coord: rgba(18, 22, 30, 0.55);
+}
+
+[data-high-contrast='true'] {
+  --bg-0: #000000;
+  --bg-1: #0a0d12;
+  --bg-2: #12161f;
+  --line: #34405a;
+  --line-2: #4a5975;
+  --text-1: #ffffff;
+  --text-2: #c2c9d6;
+  --text-3: #8a93a5;
+  --accent: #f0be5c;
+  --sq-light: #6a7488;
+  --sq-dark: #3d4552;
+  --coord: rgba(255, 255, 255, 0.65);
+}
