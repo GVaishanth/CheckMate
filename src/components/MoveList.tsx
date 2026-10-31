@@ -13,10 +13,18 @@ export function MoveList({ sans, currentPly, onSelectPly, collapsed }: MoveListP
   const activeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (currentPly === undefined) {
-      listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+    const list = listRef.current;
+    const active = activeRef.current;
+    if (!list) return;
+    if (currentPly === undefined || !active) {
+      list.scrollTo({ top: list.scrollHeight });
     } else {
-      activeRef.current?.scrollIntoView({ block: 'nearest' });
+      // Keep the active move centered inside the list itself. scrollIntoView
+      // would also scroll every ancestor (including the window), yanking the
+      // page whenever the list is below the fold.
+      const listR = list.getBoundingClientRect();
+      const activeR = active.getBoundingClientRect();
+      list.scrollTop += activeR.top - listR.top - (listR.height - activeR.height) / 2;
     }
   }, [sans.length, currentPly]);
 

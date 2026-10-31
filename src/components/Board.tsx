@@ -11,7 +11,7 @@ import {
   Color, FILES, Move, PAWN, PieceType, RANKS, WHITE, algebraic, colorOf, fileOf, rankOf, typeOf,
 } from '../chess/constants';
 import type { Position } from '../chess/position';
-import { PieceSvg } from './PieceSvg';
+import { PieceSvg, glyphFor } from './PieceSvg';
 import { sound } from '../audio/sound';
 import type { Settings } from '../storage/settings';
 
@@ -475,8 +475,8 @@ export function Board(props: BoardProps) {
 
 function PieceView({ piece, style }: { piece: number; style: Settings['pieceStyle'] }) {
   if (style === 'glyph') {
-    const glyph = { 1: '♟', 2: '♞', 3: '♝', 4: '♜', 5: '♛', 6: '♚' }[piece & 7]!;
-    return <span className={`piece-glyph ${colorOf(piece) === WHITE ? 'w' : 'b'}`}>{glyph}</span>;
+    const white = colorOf(piece) === WHITE;
+    return <span className={`piece-glyph ${white ? 'w' : 'b'}`}>{glyphFor(piece & 7, white)}</span>;
   }
   return <PieceSvg type={typeOf(piece) as PieceType} color={colorOf(piece) as Color} />;
 }
@@ -511,7 +511,7 @@ function PromotionPicker({
             <button key={t} className="promo-piece" onClick={() => onPick(t)} aria-label={`Promote to ${['', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king'][t]}`}>
               {style === 'glyph' ? (
                 <span className={`piece-glyph ${color === WHITE ? 'w' : 'b'}`} style={{ fontSize: 30 }}>
-                  { ({ 2: '♞', 3: '♝', 4: '♜', 5: '♛' } as Record<number, string>)[t]! }
+                  {glyphFor(t, color === WHITE)}
                 </span>
               ) : (
                 <PieceSvg type={t} color={color} />

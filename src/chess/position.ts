@@ -9,15 +9,8 @@
  *
  * The UI never implements chess rules itself; it talks to this class only.
  */
-import {
-  B_B, B_W, BLACK, CASTLE_ALL, CASTLE_BK, CASTLE_BQ, CASTLE_WK, CASTLE_WQ, Color, EMPTY,
-  FLAG_CASTLE_K, FLAG_CASTLE_Q, FLAG_DOUBLE, FLAG_EN_PASSANT, FLAG_NORMAL, FILES, KING,
-  KING_OFFSETS, K_B, K_W, KNIGHT, KNIGHT_OFFSETS, Move, N_B, N_W, PAWN, PieceType, Q_B, Q_W,
-  QUEEN_DIRS, R_B, R_W, ROOK_DIRS, START_FEN, WHITE, algebraic, colorOf, decodeMove,
-  encodeMove, fromAlgebraic, makePiece, moveFlag, moveFrom, movePromo, moveTo, onBoard, other,
-  rankOf, typeOf,
-} from './constants';
-import { HashState, hashCastling, hashEp, hashPiece, hashSide } from './zobrist';
+import { BLACK, B_B, B_W, CASTLE_ALL, CASTLE_BK, CASTLE_BQ, CASTLE_WK, CASTLE_WQ, ChessVariant, Color, EMPTY, FILES, FLAG_CASTLE_K, FLAG_CASTLE_Q, FLAG_DOUBLE, FLAG_EN_PASSANT, FLAG_NORMAL, KING, KING_OFFSETS, KNIGHT, KNIGHT_OFFSETS, K_B, K_W, Move, N_B, N_W, PAWN, PieceType, QUEEN_DIRS, Q_B, Q_W, ROOK_DIRS, R_B, R_W, START_FEN, WHITE, algebraic, colorOf, decodeMove, encodeMove, fromAlgebraic, makePiece, moveFlag, moveFrom, movePromo, moveTo, onBoard, other, rankOf, typeOf } from './constants';
+import { HashState, hashCastling, hashChecks, hashEp, hashPiece, hashSide, hashVariant } from './zobrist';
 import { PST_EG, PST_MG, pstIndexOf } from './pst';
 
 export class ChessError extends Error {}
@@ -41,6 +34,9 @@ export class Position {
   ep = -1; // en-passant target square, kept only when a capture is pseudo-legal
   halfmove = 0;
   fullmove = 1;
+  variant: ChessVariant = 'standard';
+  /** Checks delivered by each side (three-check only). */
+  checksGiven: [number, number] = [0, 0];
   kings: [number, number] = [0, 0];
   hash: HashState = { lo: 0, hi: 0 };
   ply = 0; // half-moves played since the position was loaded
@@ -165,6 +161,10 @@ export class Position {
     return parseInt(s, 10);
   }
 
+  private variantId(): number {
+    return this.variant === 'standard' ? 0 : this.variant === 'three-check' ? 1 : 2;
+  }
+
   private computeHash(): void {
     this.hash.lo = 0;
     this.hash.hi = 0;
@@ -176,6 +176,11 @@ export class Position {
     hashCastling(this.hash, this.castling);
     if (this.ep >= 0) hashEp(this.hash, this.ep & 7);
     if (this.stm === BLACK) hashSide(this.hash);
+    hashVariant(this.hash, this.variantId());
+    if (this.variant === 'three-check') {
+      hashChecks(this.hash, 0, this.checksGiven[0]);
+      hashChecks(this.hash, 1, this.checksGiven[1]);
+    }
   }
 
   fen(): string {
@@ -207,8 +212,24 @@ export class Position {
     } ${this.halfmove} ${this.fullmove}`;
   }
 
+  /**
+   * Switch the rule variant on a freshly loaded position (FEN carries no
+   * variant field). Must be called before the first makeMove so the hash
+   * history root stays consistent.
+   */
+  applyVariant(v: ChessVariant): void {
+    if (v === this.variant) return;
+    this.variant = v;
+    this.checksGiven = [0, 0];
+    this.computeHash();
+    this.hashHistory = [this.hash.lo, this.hash.hi];
+    this.legalCache = null;
+  }
+
   clone(): Position {
     const p = new Position();
+    p.variant = this.variant;
+    p.checksGiven = [this.checksGiven[0], this.checksGiven[1]];
     p.board.set(this.board);
     p.stm = this.stm;
     p.castling = this.castling;
@@ -523,6 +544,12 @@ export class Position {
     if (us === BLACK) this.fullmove++;
     this.stm = them;
     hashSide(this.hash);
+    // Three-check: a delivered check advances the counter (and the hash).
+    if (this.variant === 'three-check' && this.inCheck(them)) {
+      hashChecks(this.hash, us, this.checksGiven[us]);
+      this.checksGiven[us]++;
+      hashChecks(this.hash, us, this.checksGiven[us]);
+    }
     this.ply++;
     this.hashHistory.push(this.hash.lo, this.hash.hi);
     this.legalCache = null;
@@ -537,6 +564,9 @@ export class Position {
     const from = moveFrom(e.move), to = moveTo(e.move), flag = moveFlag(e.move), promo = movePromo(e.move);
     const b = this.board;
     const us = other(this.stm);
+    // Three-check: the move being undone delivered a check iff the current
+    // side to move stands in check.
+    if (this.variant === 'three-check' && this.inCheck(this.stm)) this.checksGiven[us]--;
     this.stm = us as Color;
     if (us === BLACK) this.fullmove--;
 
@@ -611,6 +641,26 @@ export class Position {
 
   // ----------------------------------------------------------- game state
 
+  /** King of the Hill: the king reached a center square (d4/e4/d5/e5). */
+  kingOnHill(color: Color): boolean {
+    const k = this.kings[color];
+    return k === 0x33 || k === 0x34 || k === 0x43 || k === 0x44;
+  }
+
+  /** Variant win condition met (color), or null while the game runs. */
+  variantWinner(): Color | null {
+    if (this.variant === 'koth') {
+      if (this.kingOnHill(WHITE)) return WHITE;
+      if (this.kingOnHill(BLACK)) return BLACK;
+      return null;
+    }
+    if (this.variant === 'three-check') {
+      if (this.checksGiven[0] >= 3) return WHITE;
+      if (this.checksGiven[1] >= 3) return BLACK;
+    }
+    return null;
+  }
+
   isCheckmate(): boolean {
     return this.inCheck() && this.getLegalMoves().length === 0;
   }
@@ -651,6 +701,9 @@ export class Position {
   }
 
   isInsufficientMaterial(): boolean {
+    // King of the Hill: bare kings can still win by reaching the center,
+    // so no material count is dead while the hill decides the game.
+    if (this.variant === 'koth') return false;
     let minors = 0;
     let bishops = 0;
     let bishopSquareColors = 0;

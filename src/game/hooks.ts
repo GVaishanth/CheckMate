@@ -3,12 +3,17 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { GameController } from './GameController';
 import { Position } from '../chess/position';
 
-export function useGameController(config: { whiteName: string; blackName: string; startFen?: string }): GameController {
+export function useGameController(config: {
+  whiteName: string;
+  blackName: string;
+  startFen?: string;
+  variant?: 'standard' | 'three-check' | 'koth';
+}): GameController {
   const controller = useMemo(
     () => new GameController(config),
     // Recreate only when the identity token changes — pages pass a stable token.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [config.whiteName, config.blackName, config.startFen],
+    [config.whiteName, config.blackName, config.startFen, config.variant],
   );
   useSyncExternalStore(controller.subscribe, controller.getVersion, controller.getVersion);
   return controller;
@@ -66,9 +71,12 @@ export class ReviewController {
   ply: number;
   private listeners = new Set<() => void>();
   private version = 0;
+  private variant: string;
 
-  constructor(startFen: string, moves: string[]) {
+  constructor(startFen: string, moves: string[], variant?: string) {
     this.position = Position.fromFen(startFen);
+    if (variant === 'three-check' || variant === 'koth') this.position.applyVariant(variant);
+    this.variant = variant ?? 'standard';
     this.ply = 0;
     this.totalPlies = moves.length;
     this.moves = moves;
@@ -91,6 +99,7 @@ export class ReviewController {
 
   private rebuild(ply: number): void {
     const pos = Position.fromFen(this.position.startFen);
+    if (this.variant !== 'standard') pos.applyVariant(this.variant as 'three-check' | 'koth');
     for (let i = 0; i < ply; i++) {
       try {
         pos.playUci(this.moves[i]!);
@@ -125,10 +134,10 @@ export class ReviewController {
   }
 }
 
-export function useReviewController(startFen: string, moves: string[]): ReviewController {
+export function useReviewController(startFen: string, moves: string[], variant?: string): ReviewController {
   const ref = useRef<ReviewController | null>(null);
   if (ref.current === null || ref.current.position.startFen !== startFen || ref.current.moves.length !== moves.length) {
-    ref.current = new ReviewController(startFen, moves);
+    ref.current = new ReviewController(startFen, moves, variant);
   }
   const review = ref.current;
   useSyncExternalStore(review.subscribe, review.getVersion, review.getVersion);

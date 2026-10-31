@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { BoardAnimate } from '../../components/Board';
 import { GameOver } from '../../components/GameOver';
+import { GameReview } from '../../components/GameReview';
 import { useToast } from '../../components/Toast';
 import { GameController } from '../../game/GameController';
 import { useControllerVersion, useOrientation } from '../../game/hooks';
@@ -50,6 +51,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
   const [animate, setAnimate] = useState<BoardAnimate | null>(null);
   const [orientation, flip] = useOrientation('white');
   const [gameOverOpen, setGameOverOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const send = useCallback((msg: Record<string, unknown>): boolean => {
     if (!peerRef.current?.send(msg)) {
@@ -623,6 +625,9 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                 { label: 'Mode', value: 'P2P' },
               ]}
             >
+              {controller.moves.length > 0 && (
+                <button className="btn" onClick={() => setReviewOpen(true)}>AUTO-REVIEW</button>
+              )}
               {rematchOfferedBy === 'me' ? (
                 <div className="tiny faint">Waiting for {peerName} to accept…</div>
               ) : (
@@ -702,6 +707,16 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
           )}
         </div>
       </DuelChrome>
+      {reviewOpen && controller.phase === 'ended' && (
+        <GameReview
+          whiteName={controller.config.whiteName}
+          blackName={controller.config.blackName}
+          startFen={controller.position.startFen}
+          moves={controller.moves.map((m) => ({ san: m.san, uci: m.uci }))}
+          myColor={myColor === WHITE ? 'white' : 'black'}
+          onExit={() => setReviewOpen(false)}
+        />
+      )}
     </>
   );
 }

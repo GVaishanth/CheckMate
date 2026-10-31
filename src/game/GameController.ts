@@ -5,7 +5,7 @@
  *
  * UI frameworks subscribe via onChange(); React binds with useSyncExternalStore.
  */
-import { Color, FLAG_EN_PASSANT, Move, PieceType, START_FEN, WHITE, algebraic, encodeMoveObj } from '../chess/constants';
+import { ChessVariant, Color, FLAG_EN_PASSANT, Move, PieceType, START_FEN, WHITE, algebraic, encodeMoveObj } from '../chess/constants';
 import { Position } from '../chess/position';
 import { moveToSan } from '../chess/san';
 import { moveToUci } from '../chess/constants';
@@ -15,6 +15,8 @@ export type GamePhase = 'playing' | 'ended';
 export type GameWinner = 'white' | 'black' | null;
 export type EndReason =
   | 'checkmate'
+  | 'king-of-the-hill'
+  | 'three-check'
   | 'stalemate'
   | 'threefold'
   | 'fifty-move'
@@ -32,6 +34,8 @@ export interface ControllerConfig {
   whiteName: string;
   blackName: string;
   startFen?: string;
+  /** Rule variant (bot games + pass & play; default standard). */
+  variant?: ChessVariant;
 }
 
 export class GameController {
@@ -49,6 +53,7 @@ export class GameController {
   constructor(config: ControllerConfig) {
     this.config = config;
     this.position = Position.fromFen(config.startFen ?? START_FEN);
+    if (config.variant && config.variant !== 'standard') this.position.applyVariant(config.variant);
   }
 
   // -------------------------------------------------------------- plumbing
@@ -138,6 +143,9 @@ export class GameController {
       this.finish(pos.stm === WHITE ? 'black' : 'white', 'checkmate');
     } else if (pos.isStalemate()) {
       this.finish(null, 'stalemate');
+    } else if (pos.variantWinner() !== null) {
+      const vw = pos.variantWinner()!;
+      this.finish(vw === WHITE ? 'white' : 'black', pos.variant === 'koth' ? 'king-of-the-hill' : 'three-check');
     } else if (pos.repetitionCount() >= 3) {
       this.finish(null, 'threefold');
     } else if (pos.isDrawByFiftyMoves()) {

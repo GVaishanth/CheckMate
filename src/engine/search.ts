@@ -131,7 +131,14 @@ export class Searcher {
     if ((this.nodes & 2047) === 0 && Date.now() >= this.deadline) this.stopped = true;
     if (this.stopped) return 0;
 
-    if (ply > 0 && (pos.isRepetition() || pos.isDrawByFiftyMoves() || pos.isInsufficientMaterial())) return 0;
+    if (ply > 0) {
+      // Variant win (hill reached / third check) — terminal for the mover.
+      if (pos.variant !== 'standard') {
+        const vw = pos.variantWinner();
+        if (vw !== null) return vw === pos.stm ? MATE_SCORE - ply : -MATE_SCORE + ply;
+      }
+      if (pos.isRepetition() || pos.isDrawByFiftyMoves() || pos.isInsufficientMaterial()) return 0;
+    }
 
     const inCheck = pos.inCheck();
     if (inCheck) depth++;
@@ -256,6 +263,11 @@ export class Searcher {
     if ((this.nodes & 2047) === 0 && Date.now() >= this.deadline) this.stopped = true;
     if (this.stopped) return 0;
     if (ply >= MAX_TOTAL_PLY) return this.evalNow();
+
+    if (pos.variant !== 'standard') {
+      const vw = pos.variantWinner();
+      if (vw !== null) return vw === pos.stm ? MATE_SCORE - ply : -MATE_SCORE + ply;
+    }
 
     const inCheck = pos.inCheck();
     let standPat = -INF;

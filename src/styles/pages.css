@@ -310,6 +310,7 @@
 }
 
 .roster-row {
+  touch-action: manipulation;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) auto;
   align-items: center;
@@ -419,7 +420,12 @@ a.roster-row:hover::before {
 }
 
 a.roster-row:hover .roster-cta,
-a.roster-row:focus-visible .roster-cta { opacity: 1; }
+a.roster-row:focus-visible .roster-cta,
+button.roster-row:hover .roster-cta,
+button.roster-row:focus-visible .roster-cta { opacity: 1; }
+
+button.roster-row[aria-pressed='true'] .roster-cta,
+button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
 
 @media (max-width: 720px) {
   .roster-traits { display: none; }
@@ -459,14 +465,7 @@ a.roster-row:focus-visible .roster-cta { opacity: 1; }
 /* ------------------------------------------------- bots page */
 
 .bot-setup {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: var(--sp-5);
-  align-items: start;
-}
-
-@media (max-width: 980px) {
-  .bot-setup { grid-template-columns: 1fr; }
+  max-width: 780px;
 }
 
 /* ------------------------------------------------- game HUD */
@@ -551,7 +550,9 @@ a.roster-row:focus-visible .roster-cta { opacity: 1; }
 
 .captured-piece { width: 16px; height: 16px; display: inline-flex; opacity: 0.85; }
 .captured-piece svg { width: 100%; height: 100%; }
-.captured-glyph { font-size: 13px; line-height: 1; opacity: 0.8; }
+.captured-glyph { font-size: 13px; line-height: 1; opacity: 0.9; }
+.captured-glyph.w { color: #f0ead8; }
+.captured-glyph.b { color: #454c5c; }
 
 .captured-advantage {
   font-family: var(--font-mono);
@@ -629,6 +630,13 @@ a.roster-row:focus-visible .roster-cta { opacity: 1; }
 .gameover-scrim.shown { opacity: 1; }
 
 .gameover-scrim.static { opacity: 1; position: relative; background: transparent; backdrop-filter: none; }
+
+/* Landscape phones: the result panel must never spill out of the short
+   game column — center when it fits, scroll when it doesn't. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .gameover-scrim { overflow: auto; align-items: flex-start; }
+  .gameover { margin: auto; max-width: min(460px, 92vw); }
+}
 
 /* ------------------------------------------------- annotator review */
 
@@ -769,6 +777,16 @@ a.roster-row:focus-visible .roster-cta { opacity: 1; }
   .review { padding: var(--sp-3); max-height: 100dvh; }
   .review-comment { min-width: 100%; }
   .review-board { max-width: 100%; }
+}
+
+/* Landscape phones: board on the left, commentary and controls beside it. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .review { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }
+  .review-head,
+  .review-progress { flex-basis: 100%; }
+  .review-board { max-width: min(46vw, calc(100dvh - 150px)); }
+  .review-card { flex: 1; min-width: 240px; }
+  .review-summary { flex: 1; min-width: 260px; }
 }
 
 .gameover {

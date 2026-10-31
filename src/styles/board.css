@@ -262,8 +262,15 @@
   font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', sans-serif;
 }
 
+/* Classic glyphs: white = outline shape in ivory; black = solid shape in
+   charcoal with a light stroke, matching the VANGUARD black pieces (dark
+   body, light rim) so both designs read on dark squares. */
 .piece-glyph.w { color: #f0ead8; text-shadow: 0 0 2px rgba(0, 0, 0, 0.9), 0 1px 1px rgba(0, 0, 0, 0.7); }
-.piece-glyph.b { color: #1d2027; text-shadow: 0 0 2px rgba(255, 255, 255, 0.35), 0 0 1px rgba(255, 255, 255, 0.5); }
+.piece-glyph.b {
+  color: #262b36;
+  -webkit-text-stroke: 0.7px rgba(232, 228, 214, 0.6);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
+}
 
 /* ------------------------------------------------- promotion */
 
@@ -459,4 +466,23 @@
   .game-side { order: 2; }
   .game-left-rail .panel { display: none; }
   .game-left-rail .panel.panel-mobile { display: block; }
+}
+
+/* Landscape phones: height is the scarce resource, width is abundant.
+   The board owns column 1 from the top of the layout; player cards and the
+   move list stack in a compact rail beside it. Must stay after the portrait
+   rules above (it overrides them for short viewports). */
+@media (orientation: landscape) and (max-height: 520px) {
+  .game-layout,
+  .game-layout.wide {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+    gap: var(--sp-3) var(--sp-4);
+  }
+  .game-left-rail { display: contents; }
+  .game-left-rail .panel.panel-mobile { display: none; }
+  .game-left-rail > * { grid-column: 2; }
+  .game-center { grid-column: 1; grid-row: 1; }
+  .game-side { grid-column: 2; }
+  .board-wrap { max-width: min(100%, calc(100dvh - 150px)); }
+  .player-card { padding: var(--sp-2); }
 }

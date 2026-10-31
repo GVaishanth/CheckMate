@@ -2,7 +2,7 @@
  * Engine worker — runs all search/analysis off the UI thread.
  *
  * Protocol (all messages are plain objects):
- *   → { t: 'search', id, gameId, startFen, moves, style, seed }
+ *   → { t: 'search', id, gameId, startFen, moves, style, seed, variant? }
  *   ← { t: 'progress', id, depth, nodes, ms, score }
  *   ← { t: 'search-result', id, uci, fromBook, score, depth, nodes, ms, pv }
  *
@@ -31,8 +31,9 @@ import { TranspositionTable } from '../engine/tt';
 const tt = new TranspositionTable();
 let lastGameId = '';
 
-function buildPosition(startFen: string, moves: string[]): Position {
+function buildPosition(startFen: string, moves: string[], variant?: string): Position {
   const pos = Position.fromFen(startFen);
+  if (variant === 'three-check' || variant === 'koth') pos.applyVariant(variant);
   pos.playUciMoves(moves);
   return pos;
 }
@@ -43,6 +44,7 @@ type Req = {
   gameId?: string;
   startFen?: string;
   moves?: string[];
+  variant?: string;
   style?: unknown;
   seed?: number;
   botId?: string;
@@ -67,7 +69,7 @@ self.onmessage = (ev: MessageEvent<Req>) => {
           tt.clear();
           lastGameId = msg.gameId;
         }
-        const pos = buildPosition(msg.startFen!, msg.moves ?? []);
+        const pos = buildPosition(msg.startFen!, msg.moves ?? [], msg.variant);
         const style = msg.style as (typeof BOTS)[number];
         const decision = botMove(pos, style, msg.seed ?? (Date.now() & 0xffffffff));
         (self as unknown as Worker).postMessage({
@@ -85,7 +87,7 @@ self.onmessage = (ev: MessageEvent<Req>) => {
       }
       case 'eval-draw': {
         const id = msg.id!;
-        const pos = buildPosition(msg.startFen!, msg.moves ?? []);
+        const pos = buildPosition(msg.startFen!, msg.moves ?? [], msg.variant);
         const bot = botById(msg.botId ?? 'club');
         const searcher = new Searcher(tt);
         const r = searcher.search(pos, { maxDepth: 4, softMs: 400 });
@@ -105,7 +107,7 @@ self.onmessage = (ev: MessageEvent<Req>) => {
         // losses[p] is the centipawn loss of ply p (0 when skipped) —
         // index alignment matters to consumers.
         const losses: number[] = new Array(total).fill(0);
-        const pos = Position.fromFen(msg.startFen!);
+        const pos = buildPosition(msg.startFen!, [], msg.variant);
         let done = 0;
         for (let ply = 0; ply < total; ply++) {
           const uci = msg.moves?.[ply];
@@ -129,7 +131,7 @@ self.onmessage = (ev: MessageEvent<Req>) => {
         const total = msg.moves?.length ?? 0;
         const losses: number[] = new Array(total).fill(0);
         const bests: (string | null)[] = new Array(total).fill(null);
-        const pos = Position.fromFen(msg.startFen!);
+        const pos = buildPosition(msg.startFen!, [], msg.variant);
         for (let ply = 0; ply < total; ply++) {
           const uci = msg.moves?.[ply];
           if (uci === undefined) break;

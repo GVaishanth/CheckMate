@@ -24,6 +24,8 @@ export function performanceRating(avgLossCp: number): number {
 export function endReasonText(reason?: string): string {
   switch (reason) {
     case 'checkmate': return 'CHECKMATE';
+    case 'king-of-the-hill': return 'KING OF THE HILL';
+    case 'three-check': return 'THREE-CHECK';
     case 'stalemate': return 'STALEMATE';
     case 'threefold': return 'THREEFOLD REPETITION';
     case 'fifty-move': return 'FIFTY-MOVE RULE';

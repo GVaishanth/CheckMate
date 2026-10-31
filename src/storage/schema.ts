@@ -24,6 +24,8 @@ export interface StoredGame {
   id: string;
   mode: GameMode;
   date: number;
+  /** Rule variant the game was played under (default standard). */
+  variant?: 'standard' | 'three-check' | 'koth';
   /** Display name for white / black seats. */
   whiteName: string;
   blackName: string;

@@ -44,6 +44,23 @@ export const EP_KEYS_HI = makeTable(rngHi, 8);
 export const SIDE_KEY_LO = rand32from(rngLo);
 export const SIDE_KEY_HI = rand32from(rngHi);
 
+// Variant tag + three-check counters — same placement under different rules
+// (or a different number of checks delivered) must not collide in the TT.
+export const VARIANT_KEYS_LO = makeTable(rngLo, 4);
+export const VARIANT_KEYS_HI = makeTable(rngHi, 4);
+export const CHECK_KEYS_LO = makeTable(rngLo, 8); // [color 0..1][count 0..3]
+export const CHECK_KEYS_HI = makeTable(rngHi, 8);
+
+export const hashVariant = (h: HashState, v: number): void => {
+  h.lo ^= VARIANT_KEYS_LO[v]!;
+  h.hi ^= VARIANT_KEYS_HI[v]!;
+};
+
+export const hashChecks = (h: HashState, color: number, count: number): void => {
+  h.lo ^= CHECK_KEYS_LO[color * 4 + count]!;
+  h.hi ^= CHECK_KEYS_HI[color * 4 + count]!;
+};
+
 export interface HashState {
   lo: number;
   hi: number;

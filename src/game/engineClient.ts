@@ -87,20 +87,27 @@ class EngineClient {
     });
   }
 
+  /** Load a position for a fallback request (variant-aware). */
+  private fallbackPosition(eng: typeof import('../engine/index'), payload: Record<string, unknown>) {
+    const pos = eng.Position.fromFen(payload.startFen as string);
+    const v = payload.variant as string | undefined;
+    if (v === 'three-check' || v === 'koth') pos.applyVariant(v);
+    pos.playUciMoves((payload.moves as string[]) ?? []);
+    return pos;
+  }
+
   /** Synchronous fallback on the main thread (workers unavailable). */
   private async requestFallback(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
     this.fallback ??= import('../engine/index');
     const eng = await this.fallback;
     switch (payload.t) {
       case 'search': {
-        const pos = eng.Position.fromFen(payload.startFen as string);
-        pos.playUciMoves((payload.moves as string[]) ?? []);
+        const pos = this.fallbackPosition(eng, payload);
         const d = eng.botMove(pos, payload.style as BotStyle, (payload.seed as number) ?? undefined);
         return { t: 'search-result', uci: d.uci, fromBook: d.fromBook, score: d.score, depth: d.depth, nodes: d.nodes, ms: d.ms, pv: d.pv };
       }
       case 'eval-draw': {
-        const pos = eng.Position.fromFen(payload.startFen as string);
-        pos.playUciMoves((payload.moves as string[]) ?? []);
+        const pos = this.fallbackPosition(eng, payload);
         const bot = eng.botById((payload.botId as string) ?? 'club');
         const r = eng.findBestMove(pos, { maxDepth: 4, softMs: 300 });
         let accept = Math.abs(r.score) < 60;
@@ -109,7 +116,7 @@ class EngineClient {
       }
       case 'analyze-game': {
         const losses: number[] = [];
-        const pos = eng.Position.fromFen(payload.startFen as string);
+        const pos = this.fallbackPosition(eng, { ...payload, moves: [] });
         for (const uci of (payload.moves as string[]) ?? []) {
           const q = eng.analyzeMoveQuality(pos, uci, (payload.depth as number) ?? 6);
           losses.push(Math.min(600, q.lossCp));
@@ -122,7 +129,7 @@ class EngineClient {
         return { t: 'eval-result', cp: eng.evaluateWhiteCp(pos, 'full') };
       }
       case 'analyze-review': {
-        const pos = eng.Position.fromFen(payload.startFen as string);
+        const pos = this.fallbackPosition(eng, payload);
         const depth = (payload.depth as number) ?? 6;
         const losses: number[] = [];
         const bests: (string | null)[] = [];
@@ -150,6 +157,7 @@ class EngineClient {
     moves: string[];
     style: BotStyle;
     seed?: number;
+    variant?: 'three-check' | 'koth';
     onProgress?: (p: { depth: number; nodes: number; ms: number }) => void;
   }): Promise<SearchReply> {
     try {
@@ -163,7 +171,7 @@ class EngineClient {
     }
   }
 
-  async evalDraw(args: { startFen: string; moves: string[]; botId: string }): Promise<DrawDecision> {
+  async evalDraw(args: { startFen: string; moves: string[]; botId: string; variant?: 'three-check' | 'koth' }): Promise<DrawDecision> {
     try {
       const r = await this.request({ t: 'eval-draw', ...args });
       return r as unknown as DrawDecision;
@@ -174,7 +182,7 @@ class EngineClient {
   }
 
   async analyzeGame(
-    args: { startFen: string; moves: string[]; depth?: number },
+    args: { startFen: string; moves: string[]; depth?: number; variant?: 'three-check' | 'koth' },
     onProgress?: (p: { done: number; total: number }) => void,
   ): Promise<{ losses: number[] }> {
     try {
@@ -188,7 +196,7 @@ class EngineClient {
 
   /** Per-ply loss + best move for the post-game review (progressive). */
   async analyzeReview(
-    args: { startFen: string; moves: string[]; depth?: number },
+    args: { startFen: string; moves: string[]; depth?: number; variant?: 'three-check' | 'koth' },
     onProgress?: (p: { done: number; total: number }) => void,
   ): Promise<{ losses: number[]; bests: (string | null)[] }> {
     try {

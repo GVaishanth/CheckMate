@@ -111,6 +111,7 @@ export function HistoryPage() {
               blackName={review.blackName}
               startFen={review.startFen || START_FEN}
               moves={review.moves.map((m) => ({ san: m.san, uci: m.uci }))}
+              variant={review.variant}
               onExit={() => setAutoReview(false)}
             />
           ) : (
@@ -266,7 +267,7 @@ function ReviewView({ game, onExit, onAutoReview }: { game: StoredGame; onExit: 
     if (game.moves.every((m) => m.san)) return game.moves.map((m) => m.san);
     return recomputeSans(startFen, moves);
   }, [game.moves, moves, startFen]);
-  const review = useReviewController(startFen, moves);
+  const review = useReviewController(startFen, moves, game.variant);
   const [orientation, flip] = useOrientation('white');
 
   useHotkeys(
@@ -309,7 +310,10 @@ function ReviewView({ game, onExit, onAutoReview }: { game: StoredGame; onExit: 
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">{MODE_LABEL[game.mode]} · {formatDate(game.date)}</div>
+          <div className="eyebrow">
+            {MODE_LABEL[game.mode]}
+            {game.variant && game.variant !== 'standard' ? ` · ${game.variant === 'koth' ? 'KING OF THE HILL' : 'THREE-CHECK'}` : ''} · {formatDate(game.date)}
+          </div>
           <h1 className="page-title" style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)' }}>
             {game.whiteName} vs {game.blackName}
           </h1>

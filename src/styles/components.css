@@ -4,6 +4,12 @@
 
 /* ------------------------------------------------- buttons */
 
+.btn[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -370,6 +376,9 @@ kbd {
   overflow: hidden;
   background: var(--bg-1);
 }
+
+/* Variant pickers: three long labels — let them stack on narrow panels. */
+.seg-wrap { flex-wrap: wrap; border-radius: var(--r-1); }
 
 .seg button {
   font-family: var(--font-mono);

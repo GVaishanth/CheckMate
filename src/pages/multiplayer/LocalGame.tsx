@@ -1,33 +1,48 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BoardAnimate, Orientation } from '../../components/Board';
 import { GameOver } from '../../components/GameOver';
+import { GameReview } from '../../components/GameReview';
+import { IconFlip, IconQuill } from '../../components/icons';
 import { useToast } from '../../components/Toast';
-import { GameController } from '../../game/GameController';
-import { useControllerVersion, useOrientation } from '../../game/hooks';
+import { useControllerVersion, useGameController, useOrientation } from '../../game/hooks';
 import { endReasonText } from '../../game/analysis';
 import { endSoundFor, moveSoundName, sound } from '../../audio/sound';
 import { useSettings } from '../../storage/settings';
 import { gamesRepo, StoredGame } from '../../storage/db';
 import { exportPgn } from '../../chess/pgn';
-import { WHITE, PieceType } from '../../chess/constants';
+import { ChessVariant, WHITE, PieceType } from '../../chess/constants';
 import { uid } from '../../utils';
 import { DuelChrome } from './DuelChrome';
 import { fmtDur, outcomeOf, resultString } from './shared';
 
+const VARIANTS: { id: ChessVariant; label: string }[] = [
+  { id: 'standard', label: 'STANDARD' },
+  { id: 'three-check', label: '3-CHECK' },
+  { id: 'koth', label: 'KING OF THE HILL' },
+];
+
 export function LocalGame({ onExit }: { onExit: () => void }) {
   const { settings } = useSettings();
   const { toast } = useToast();
-  const controller = useMemo(
-    () => new GameController({ whiteName: 'White', blackName: 'Black' }),
-    [],
+  const [variant, setVariant] = useState<ChessVariant>('standard');
+  const controller = useGameController(
+    useMemo(() => ({ whiteName: 'White', blackName: 'Black', variant }), [variant]),
   );
   const version = useControllerVersion(controller);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [autoFlip, setAutoFlip] = useState(true);
   const [orientation, flip] = useOrientation('white');
   const [animate, setAnimate] = useState<BoardAnimate | null>(null);
   const [saved, setSaved] = useState(false);
   const [gameOverOpen, setGameOverOpen] = useState(false);
   const [drawArmed, setDrawArmed] = useState(false);
+
+  useEffect(() => {
+    setSaved(false);
+    setGameOverOpen(false);
+    setAnimate(null);
+    setDrawArmed(false);
+  }, [controller]);
 
   useEffect(() => {
     if (controller.phase !== 'ended' || saved) return;
@@ -42,6 +57,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
       date: Date.now(),
       whiteName: 'White',
       blackName: 'Black',
+      variant,
       startFen: controller.position.startFen,
       moves: controller.moves,
       outcome: outcomeOf(controller),
@@ -81,16 +97,30 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
             Two players, one board. {autoFlip ? 'The board turns to face whoever moves next.' : 'Fixed orientation.'}
           </p>
         </div>
-        <div className="row">
-          <label className="toggle tiny">
-            <input
-              type="checkbox"
-              checked={autoFlip}
-              onChange={(e) => setAutoFlip(e.target.checked)}
-              aria-label="Auto-flip board between turns"
-            />
-            <span className="settings-row-label">AUTO-FLIP</span>
-          </label>
+        <div className="row wrap">
+          <div className="seg seg-wrap" role="group" aria-label="Choose rules">
+            {VARIANTS.map((v) => (
+              <button
+                key={v.id}
+                aria-pressed={variant === v.id}
+                disabled={controller.moves.length > 0 && controller.phase === 'playing'}
+                onClick={() => setVariant(v.id)}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+          <button
+            className="btn btn-sm"
+            aria-pressed={autoFlip}
+            title="Board turns to face whoever moves next"
+            onClick={() => {
+              setAutoFlip((v) => !v);
+              sound.play('uiTick');
+            }}
+          >
+            <IconFlip size={14} /> {autoFlip ? 'AUTO-FLIP' : 'FIXED BOARD'}
+          </button>
           <button className="btn btn-sm btn-ghost" onClick={onExit}>EXIT</button>
         </div>
       </div>
@@ -119,6 +149,11 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                 { label: 'Duration', value: fmtDur(controller.durationMs) },
               ]}
             >
+              {controller.moves.length > 0 && (
+                <button className="btn" onClick={() => setReviewOpen(true)}>
+                  <IconQuill size={14} /> AUTO-REVIEW
+                </button>
+              )}
               <button
                 className="btn btn-primary"
                 onClick={() => {
@@ -187,6 +222,16 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
           </button>
         </div>
       </DuelChrome>
+      {reviewOpen && controller.phase === 'ended' && (
+        <GameReview
+          whiteName="White"
+          blackName="Black"
+          startFen={controller.position.startFen}
+          moves={controller.moves.map((m) => ({ san: m.san, uci: m.uci }))}
+          variant={variant}
+          onExit={() => setReviewOpen(false)}
+        />
+      )}
     </>
   );
 }

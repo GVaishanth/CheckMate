@@ -53,7 +53,17 @@ const PATHS: Record<number, PiecePaths> = {
   },
 };
 
-const GLYPHS: Record<number, string> = { 1: '♟', 2: '♞', 3: '♝', 4: '♜', 5: '♛', 6: '♚' };
+/**
+ * Classic set — the Unicode convention: outline glyphs for white, solid for
+ * black, so the two sides differ by shape, not colour alone. U+FE0E forces
+ * text rendering on platforms that would otherwise draw these as emoji
+ * (which would ignore the CSS colour entirely).
+ */
+const OUTLINE_GLYPHS: Record<number, string> = { 1: '\u2659', 2: '\u2658', 3: '\u2657', 4: '\u2656', 5: '\u2655', 6: '\u2654' };
+const SOLID_GLYPHS: Record<number, string> = { 1: '\u265F', 2: '\u265E', 3: '\u265D', 4: '\u265C', 5: '\u265B', 6: '\u265A' };
+
+export const glyphFor = (type: number, white: boolean): string =>
+  ((white ? OUTLINE_GLYPHS : SOLID_GLYPHS)[type] ?? '') + '\uFE0E';
 
 export function PieceSvg({ type, color }: { type: PieceType; color: Color }) {
   const white = color === 0;
@@ -79,12 +89,6 @@ export function PieceSvg({ type, color }: { type: PieceType; color: Color }) {
           strokeLinecap="round"
         />
       )}
-      {GLYPHS[type] ? null : null}
     </svg>
   );
 }
-
-export const pieceGlyph = (type: number): string => GLYPHS[type] ?? '';
-
-export const pieceInitial = (type: number): string =>
-  ({ 1: 'P', 2: 'N', 3: 'B', 4: 'R', 5: 'Q', 6: 'K' } as Record<number, string>)[type] ?? '?';

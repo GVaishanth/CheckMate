@@ -16,9 +16,11 @@ The project is also a portfolio piece about engineering discipline: a from-scrat
 
 - **Six bot opponents** — genuinely different engine configurations (search depth, time budget, evaluation noise, blunder rate, opening theory), from ROOKIE (≈600) to GRANDMASTER (2100+). Ratings are approximate strength labels, not measurements.
 - **Full chess rules** — castling, en passant, promotion with a picker, threefold repetition, fifty-move rule, insufficient material, stalemate. Move generation is perft-validated.
+- **Rule variants** — Three-Check (deliver check three times to win) and King of the Hill (march your king to the center), playable against every bot and in pass & play. The engine searches them natively: the win conditions are terminal nodes in the search tree, and the transposition hash includes the variant and check counters, so variant positions never collide with standard ones.
 - **Drag & drop + click-to-move + keyboard play**, legal-move hints, last-move/check/selection highlights, move animations, board flip, four themes, two piece sets (custom SVG **VANGUARD** set or classic glyphs).
+- **Responsive phone-to-desktop layout** — landscape phones reflow the game into a board-first two-column view with the panels beside the board, put the review commentary next to the board, and keep the game-over panel reachable in short viewports.
 - **Post-game analysis** — the engine re-scores every move of the game and reports accuracy plus an estimated performance rating.
-- **Automatic review** — THE ANNOTATOR, the post-game reviewer, replays any finished game move by move: every ply is scored in the engine worker, then the replay walks through with commentary (best / good / inaccuracy / mistake / blunder and the stronger move where one exists), auto-advancing like a lesson recap. Pause, step, skip, and read the per-side verdict at the end.
+- **Automatic review** — THE ANNOTATOR, the post-game reviewer, replays any finished game move by move: every ply is scored in the engine worker, then the replay walks through with commentary (best / good / inaccuracy / mistake / blunder and the stronger move where one exists), auto-advancing like a lesson recap. Pause, step, skip, and read the per-side verdict at the end. Offered at the end of every mode — bot games, pass & play, and peer-to-peer — with a per-side accuracy and estimated performance rating for both players.
 - **Multiplayer** — direct browser-to-browser WebRTC with manual code exchange, or same-device pass & play.
 - **310 bundled puzzles** in nine tactical categories across four difficulties, with multi-move solutions, retry, solution reveal, and local statistics.
 - **Elo test** — eight engine-verified rounds with a performance estimate, confidence range, and per-category breakdown.
@@ -47,7 +49,7 @@ Weaker bots also consult less opening theory. The engine runs in a Web Worker; t
 Two modes, honestly labelled:
 
 - **Direct connection (P2P):** one player creates a room and gets a connection code (a compressed WebRTC offer). The other pastes it and answers with a reply code. Once the host accepts the reply, the game runs over a direct data channel. The host owns the authoritative game state, validates every guest move against the rules engine, and broadcasts the full state after each accepted move. Draw offers, resignations and rematch offers run over the same protocol, and a lost connection ends the game with a clear result rather than a frozen board.
-- **Pass & play:** same device; the board can flip to face whoever is thinking.
+- **Pass & play:** same device. An auto-flip toggle turns the board to face whoever is to move; press it again to lock a fixed orientation. Rule variants (Three-Check, King of the Hill) can be picked before the duel; switching rules starts a fresh game.
 
 Because there is no signaling relay, STUN or TURN, direct connections work between browsers that can reach each other — the same machine or a local network is reliable; cross-internet connections depend on the network path. There is no matchmaking and no claim of one.
 
@@ -145,7 +147,7 @@ Everything above works with the network cable pulled — the service worker cach
 - Vite 5 — build, worker bundling, code splitting
 - Web APIs: Web Workers, WebRTC (data channels), Web Audio, IndexedDB, Cache Storage
 - React Router 6 (hash routing) — the only runtime dependency beyond React
-- Vitest — perft, engine behavior, and dataset-integrity tests (32 tests)
+- Vitest — perft, engine behavior, review, variants, and dataset-integrity tests (49 tests)
 - Three self-hosted variable fonts (Space Grotesk, Inter, JetBrains Mono) — no CDN
 
 ## Project Structure
@@ -175,7 +177,7 @@ npm run dev          # vite dev server
 ```
 
 ```bash
-npm test             # 32 tests: perft, engine behavior, puzzle dataset
+npm test             # 49 tests: perft, engine, review, variants, puzzle dataset
 npm run typecheck    # strict TS for app + tools
 npm run bench        # engine nodes/second benchmark
 npm run gen:puzzles  # regenerate the puzzle dataset (offline, ~20 min)
@@ -222,6 +224,7 @@ Dark, quiet, and precise: a near-black surface, ivory text, one gold accent rese
 - No global matchmaking or signaling relay: P2P works best on the same machine or LAN; cross-network connections depend on the path between browsers.
 - The Elo number is an experimental local estimate, not a federation rating.
 - No chess clocks, no engine analysis graph, no opening explorer (yet).
+- Variants are engine-searched but not engine-evaluated: the bots see forced hill races and third checks within the search horizon, but the static evaluation carries no variant-specific terms. P2P games are standard chess only.
 - Bots are honest club-level opponents, not grandmaster-strength by any absolute measure.
 
 ## Future Improvements

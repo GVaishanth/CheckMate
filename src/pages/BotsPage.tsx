@@ -11,6 +11,7 @@ import { Board, BoardAnimate, Orientation } from '../components/Board';
 import { CapturedPieces } from '../components/CapturedPieces';
 import { GameOver } from '../components/GameOver';
 import { GameReview } from '../components/GameReview';
+import { Modal } from '../components/Modal';
 import { MoveList } from '../components/MoveList';
 import { useToast } from '../components/Toast';
 import { BOTS, BotStyle, botById } from '../engine/bots';
@@ -19,7 +20,7 @@ import { useGameController, useControllerVersion, useOrientation, useHotkeys } f
 import { useRegisterCommands } from '../game/commands';
 import type { GameController } from '../game/GameController';
 import { accuracyFromLoss, endReasonText, performanceRating } from '../game/analysis';
-import { BLACK, Color, WHITE } from '../chess/constants';
+import { BLACK, ChessVariant, Color, WHITE } from '../chess/constants';
 import { endSoundFor, moveSoundName, sound } from '../audio/sound';
 import { useSettings } from '../storage/settings';
 import { gamesRepo, StoredGame } from '../storage/db';
@@ -27,7 +28,7 @@ import { exportPgn } from '../chess/pgn';
 import { formatNodes, uid } from '../utils';
 import { IconDraw, IconFlag, IconFlip, IconList, IconUndo, IconBolt } from '../components/icons';
 
-type Stage = { kind: 'select' } | { kind: 'game'; bot: BotStyle; playerColor: Color };
+type Stage = { kind: 'select' } | { kind: 'game'; bot: BotStyle; playerColor: Color; variant: ChessVariant };
 
 export function BotsPage() {
   const [stage, setStage] = useState<Stage>({ kind: 'select' });
@@ -62,12 +63,18 @@ export function BotsPage() {
     <div className="page">
       <div className="container">
         {stage.kind === 'select' ? (
-          <BotSelect onStart={(bot, color) => { setStage({ kind: 'game', bot, playerColor: color }); setGameKey((k) => k + 1); }} />
+          <BotSelect
+            onStart={(bot, color, variant) => {
+              setStage({ kind: 'game', bot, playerColor: color, variant });
+              setGameKey((k) => k + 1);
+            }}
+          />
         ) : (
           <BotGame
             key={gameKey}
             bot={stage.bot}
             playerColor={stage.playerColor}
+            variant={stage.variant}
             onNewGame={() => setGameKey((k) => k + 1)}
             onExit={() => {
               setStage({ kind: 'select' });
@@ -82,11 +89,19 @@ export function BotsPage() {
 
 // ---------------------------------------------------------------- select
 
-function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color) => void }) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [color, setColor] = useState<'white' | 'black' | 'random'>('white');
+const VARIANTS: { id: ChessVariant; label: string; blurb: string }[] = [
+  { id: 'standard', label: 'STANDARD', blurb: 'Classical rules.' },
+  { id: 'three-check', label: '3-CHECK', blurb: 'Deliver check three times to win.' },
+  { id: 'koth', label: 'KING OF THE HILL', blurb: 'March your king to the center to win.' },
+];
 
-  const chosen = selected ? botById(selected) : null;
+function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color, variant: ChessVariant) => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [matchBot, setMatchBot] = useState<string | null>(null);
+  const [color, setColor] = useState<'white' | 'black' | 'random'>('white');
+  const [variant, setVariant] = useState<ChessVariant>('standard');
+
+  const chosen = matchBot ? botById(matchBot) : null;
 
   const start = () => {
     if (!chosen) return;
@@ -94,7 +109,7 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color) => void
       color === 'random' ? (Math.random() < 0.5 ? WHITE : BLACK) : color === 'white' ? WHITE : BLACK;
     sound.unlock();
     sound.play('gameStart');
-    onStart(chosen, actualColor);
+    onStart(chosen, actualColor, variant);
   };
 
   return (
@@ -105,7 +120,7 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color) => void
           <h1 className="page-title">Choose your opponent</h1>
           <p className="page-sub">
             Six engine personalities — each searches differently, evaluates differently, and cracks
-            under different pressure.
+            under different pressure. Tap once to select an opponent, tap again to start.
           </p>
         </div>
       </div>
@@ -119,8 +134,18 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color) => void
               role="listitem"
               aria-pressed={selected === bot.id}
               onClick={() => {
+                // First tap selects; a tap on the selected row opens the match box
+                // (so a quick double tap lands here too).
+                if (selected === bot.id) {
+                  setMatchBot(bot.id);
+                } else {
+                  setSelected(bot.id);
+                  sound.play('uiTick');
+                }
+              }}
+              onDoubleClick={() => {
                 setSelected(bot.id);
-                sound.play('uiTick');
+                setMatchBot(bot.id);
               }}
             >
               <span className="roster-pips" aria-hidden="true">
@@ -138,22 +163,22 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color) => void
                   <span key={t}>{t}</span>
                 ))}
               </span>
+              <span className={`roster-cta${selected === bot.id ? ' on' : ''}`} aria-hidden="true">
+                {selected === bot.id ? 'START MATCH →' : 'SELECT'}
+              </span>
             </button>
           ))}
         </div>
+      </div>
 
-        <div className="panel" style={{ position: 'sticky', top: 'calc(var(--nav-h) + 16px)' }}>
-          <div className="panel-title">Match</div>
-          <div className="panel-pad stack gap-16">
-            {chosen ? (
-              <div className="stack gap-8">
-                <div className="roster-name" style={{ fontSize: 20 }}>{chosen.name}</div>
-                <div className="mono" style={{ color: 'var(--accent)', fontSize: 13 }}>{chosen.elo}</div>
-                <div className="small muted">{chosen.tagline}</div>
-              </div>
-            ) : (
-              <div className="tiny faint">Select an opponent from the ladder.</div>
-            )}
+      {chosen && (
+        <Modal title="Match" onClose={() => setMatchBot(null)} closeLabel="Close match setup">
+          <div className="stack gap-16">
+            <div className="stack gap-8">
+              <div className="roster-name" style={{ fontSize: 20 }}>{chosen.name}</div>
+              <div className="mono" style={{ color: 'var(--accent)', fontSize: 13 }}>{chosen.elo}</div>
+              <div className="small muted">{chosen.tagline}</div>
+            </div>
             <div className="field">
               <span className="field-label">Your side</span>
               <div className="seg" role="group" aria-label="Choose side">
@@ -164,12 +189,23 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color) => void
                 ))}
               </div>
             </div>
-            <button className="btn btn-primary btn-lg btn-block" disabled={!chosen} onClick={start}>
+            <div className="field">
+              <span className="field-label">Rules</span>
+              <div className="seg seg-wrap" role="group" aria-label="Choose rules">
+                {VARIANTS.map((v) => (
+                  <button key={v.id} aria-pressed={variant === v.id} onClick={() => setVariant(v.id)}>
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+              <div className="tiny faint" style={{ marginTop: 6 }}>{VARIANTS.find((v) => v.id === variant)!.blurb}</div>
+            </div>
+            <button className="btn btn-primary btn-lg btn-block" onClick={start}>
               START GAME
             </button>
           </div>
-        </div>
-      </div>
+        </Modal>
+      )}
     </>
   );
 }
@@ -179,11 +215,12 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color) => void
 interface BotGameProps {
   bot: BotStyle;
   playerColor: Color;
+  variant: ChessVariant;
   onNewGame: () => void;
   onExit: () => void;
 }
 
-function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
+function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps) {
   const { settings } = useSettings();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -191,8 +228,9 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
     () => ({
       whiteName: playerColor === WHITE ? 'You' : bot.name,
       blackName: playerColor === WHITE ? bot.name : 'You',
+      variant,
     }),
-    [playerColor, bot.name],
+    [playerColor, bot.name, variant],
   );
   const controller = useGameController(config);
   const version = useControllerVersion(controller);
@@ -235,6 +273,7 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
           startFen: ctrl.position.startFen,
           moves: ctrl.moves.map((m) => m.uci),
           style: bot,
+          variant: variant === 'standard' ? undefined : variant,
           onProgress: (p) => setEngineInfo({ depth: p.depth, nodes: p.nodes, ms: p.ms }),
         });
         if (reply.uci === null || ctrl.phase !== 'playing') {
@@ -294,6 +333,7 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
       date: Date.now(),
       whiteName: config.whiteName,
       blackName: config.blackName,
+      variant,
       botId: bot.id,
       botElo: bot.elo,
       startFen: controller.position.startFen,
@@ -318,7 +358,12 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
         });
         if (playerPlies.length === 0) return;
         const { losses } = await engineClient.analyzeGame(
-          { startFen: controller.position.startFen, moves: controller.moves.map((m) => m.uci), depth: 6 },
+          {
+            startFen: controller.position.startFen,
+            moves: controller.moves.map((m) => m.uci),
+            depth: 6,
+            variant: variant === 'standard' ? undefined : variant,
+          },
           undefined,
         );
         const playerLosses = playerPlies.map((i) => losses[i] ?? 0);
@@ -381,6 +426,7 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
         startFen: controller.position.startFen,
         moves: controller.moves.map((m) => m.uci),
         botId: bot.id,
+        variant: variant === 'standard' ? undefined : variant,
       });
       if (decision.accept) {
         controller.drawByAgreement();
@@ -439,6 +485,7 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
       {
         Event: 'CHECKMATE Bot Game',
         Site: 'browser',
+        ...(variant !== 'standard' ? { Variant: variant === 'koth' ? 'King of the Hill' : 'Three-Check' } : {}),
         Date: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
         White: config.whiteName,
         Black: config.blackName,
@@ -463,6 +510,7 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
         <div className="player-name">{bot.name}</div>
         <div className="player-sub">
           {bot.elo}
+          {variant !== 'standard' ? ` · ${variant === 'koth' ? 'KING OF THE HILL' : 'THREE-CHECK'}` : ''}
           {engineInfo && !thinking ? ` · depth ${engineInfo.depth} · ${formatNodes(engineInfo.nodes)} nodes` : ''}
         </div>
         {thinking && (
@@ -599,6 +647,7 @@ function BotGame({ bot, playerColor, onNewGame, onExit }: BotGameProps) {
             blackName={config.blackName}
             startFen={controller.position.startFen}
             moves={controller.moves.map((m) => ({ san: m.san, uci: m.uci }))}
+            variant={variant}
             myColor={playerColor === WHITE ? 'white' : 'black'}
             onExit={() => setReviewOpen(false)}
           />

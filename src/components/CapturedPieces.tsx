@@ -1,7 +1,7 @@
 /** Captured pieces tray + material balance. */
-import { Color, PIECE_VALUE_CP, typeOf } from '../chess/constants';
+import { colorOf, Color, PIECE_VALUE_CP, typeOf } from '../chess/constants';
 import type { Position } from '../chess/position';
-import { PieceSvg } from './PieceSvg';
+import { PieceSvg, glyphFor } from './PieceSvg';
 import type { Settings } from '../storage/settings';
 
 const INITIAL_COUNTS: Record<number, number> = { 1: 8, 2: 2, 3: 2, 4: 2, 5: 1, 6: 1 };
@@ -20,7 +20,7 @@ export function CapturedPieces({ position, color, settings }: { position: Positi
     <div className="captured" aria-label={`Captured by ${color === 0 ? 'white' : 'black'}`}>
       {captured.sort((a, b) => (a & 7) - (b & 7)).map((code, i) =>
         settings.pieceStyle === 'glyph' ? (
-          <span key={i} className="captured-glyph">{glyphOf(code)}</span>
+          <span key={i} className={`captured-glyph ${colorOf(code) === 0 ? 'w' : 'b'}`}>{glyphFor(code & 7, colorOf(code) === 0)}</span>
         ) : (
           <span key={i} className="captured-piece">
             <PieceSvg type={typeOf(code) as 1 | 2 | 3 | 4 | 5 | 6} color={(color === 0 ? 1 : 0) as Color} />
@@ -42,4 +42,3 @@ function materialBalance(position: Position, color: Color): number {
   return Math.max(0, Math.round(diff / 100));
 }
 
-const glyphOf = (code: number): string => ({ 1: '♟', 2: '♞', 3: '♝', 4: '♜', 5: '♛' }[code & 7] ?? '');

@@ -123,6 +123,9 @@ export function uciToMoveParts(uci: string): { from: number; to: number; promo: 
   };
 }
 
+/** Rule variants. Standard chess is the default everywhere. */
+export type ChessVariant = 'standard' | 'three-check' | 'koth';
+
 // Standard piece values (centipawns) shared by evaluation and UI.
 export const PIECE_VALUE: Record<number, number> = { 0: 0, 1: 100, 2: 320, 3: 330, 4: 500, 5: 900, 6: 20000 };
 export const PIECE_VALUE_CP = [0, 100, 320, 330, 500, 900, 0] as const;

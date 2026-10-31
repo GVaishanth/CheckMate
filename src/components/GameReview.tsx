@@ -20,6 +20,8 @@ export interface GameReviewProps {
   blackName: string;
   startFen: string;
   moves: { san: string; uci: string }[];
+  /** Rule variant the game was played under (affects replay + engine judging). */
+  variant?: 'standard' | 'three-check' | 'koth';
   /** Local player's side — orients the board and marks their summary row. */
   myColor?: 'white' | 'black';
   onExit: () => void;
@@ -40,6 +42,7 @@ export function GameReview(p: GameReviewProps) {
   const review = useReviewController(
     p.startFen,
     p.moves.map((m) => m.uci),
+    p.variant,
   );
 
   useEffect(() => {
@@ -59,7 +62,12 @@ export function GameReview(p: GameReviewProps) {
     void (async () => {
       try {
         const { losses, bests } = await engineClient.analyzeReview(
-          { startFen: p.startFen, moves: movesRef.current.map((m) => m.uci), depth: 6 },
+          {
+            startFen: p.startFen,
+            moves: movesRef.current.map((m) => m.uci),
+            depth: 6,
+            variant: p.variant && p.variant !== 'standard' ? p.variant : undefined,
+          },
           (prog) => {
             if (alive) setProgress({ done: prog.done, total: prog.total });
           },
@@ -181,6 +189,7 @@ export function GameReview(p: GameReviewProps) {
           <div className="review-who">
             <div className="review-name">{REVIEWER.name}</div>
             <div className="review-sub">
+              {p.variant && p.variant !== 'standard' ? `${p.variant === 'koth' ? 'KING OF THE HILL' : 'THREE-CHECK'} · ` : ''}
               {phase === 'analyzing'
                 ? `STUDYING THE GAME · ${progress.done}/${progress.total}`
                 : phase === 'summary'
