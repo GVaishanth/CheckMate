@@ -2,7 +2,7 @@
   "name": "checkmate",
   "private": true,
   "version": "1.0.0",
-  "description": "A browser-native chess arena: local AI opponents, tactical puzzles, Elo estimation, and peer-to-peer multiplayer. 100% static, no backend.",
+  "description": "Browser chess with engine opponents, opening and checkmate lessons, tactical puzzles, Elo estimation, and peer-to-peer multiplayer. Static, no backend.",
   "type": "module",
   "scripts": {
     "dev": "vite",

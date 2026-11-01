@@ -4,6 +4,9 @@
  * (private mode, sandboxed iframe), an in-memory store keeps the app usable.
  */
 import type { StoredGame, PuzzleProgress, EloResult, ExportBundle } from './schema';
+import { normaliseEducation, recordLesson } from '../education/progress';
+import type { LessonProgress } from '../education/progress';
+import type { LessonStage } from '../education/lessons';
 
 export type { StoredGame, PuzzleProgress, EloResult, ExportBundle, GameAnalysis, MoveRecord, GameMode } from './schema';
 
@@ -20,6 +23,8 @@ const memory: Record<string, Map<string | number, unknown>> = {
 };
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
+let educationWrites: Promise<void> = Promise.resolve();
+const EDUCATION_KEY = 'education:v1';
 
 function openDb(): Promise<IDBDatabase | null> {
   if (dbPromise) return dbPromise;
@@ -118,6 +123,7 @@ export async function clearStore(store: StoreName): Promise<void> {
 }
 
 export async function clearAll(): Promise<void> {
+  await educationWrites;
   for (const s of STORES) await clearStore(s);
 }
 
@@ -174,13 +180,33 @@ export const eloRepo = {
   },
 };
 
+export const educationRepo = {
+  async all(): Promise<LessonProgress[]> {
+    await educationWrites;
+    const row = await get<{ key: string; value: unknown }>('kv', EDUCATION_KEY);
+    return normaliseEducation(row?.value);
+  },
+  record(lessonId: string, stage: LessonStage, clean = true): Promise<LessonProgress> {
+    const task = educationWrites.then(async () => {
+      const stored = await get<{ key: string; value: unknown }>('kv', EDUCATION_KEY);
+      const rows = normaliseEducation(stored?.value);
+      const next = recordLesson(rows.find((row) => row.lessonId === lessonId), lessonId, stage, clean);
+      await put('kv', { key: EDUCATION_KEY, value: [...rows.filter((row) => row.lessonId !== lessonId), next] });
+      return next;
+    });
+    educationWrites = task.then(() => undefined, () => undefined);
+    return task;
+  },
+};
+
 // ------------------------------------------------------------------ export
 
 export async function exportAll(): Promise<ExportBundle> {
-  const [games, puzzles, elo] = await Promise.all([
+  const [games, puzzles, elo, education] = await Promise.all([
     getAll<StoredGame>('games'),
     getAll<PuzzleProgress>('puzzles'),
     getAll<EloResult>('elo'),
+    educationRepo.all(),
   ]);
   let settings: string | null = null;
   try {
@@ -194,11 +220,12 @@ export async function exportAll(): Promise<ExportBundle> {
     games,
     puzzles,
     elo,
+    education,
     settings,
   };
 }
 
-export async function importAll(bundle: ExportBundle, { wipe = true }: { wipe?: boolean } = {}): Promise<{ games: number; puzzles: number; elo: number }> {
+export async function importAll(bundle: ExportBundle, { wipe = true }: { wipe?: boolean } = {}): Promise<{ games: number; puzzles: number; elo: number; education: number }> {
   if (!bundle || typeof bundle !== 'object' || !Array.isArray(bundle.games)) {
     throw new Error('Not a CHECKMATE export file');
   }
@@ -219,6 +246,9 @@ export async function importAll(bundle: ExportBundle, { wipe = true }: { wipe?: 
     await put('elo', e);
     elo++;
   }
+  const education = normaliseEducation(bundle.education);
+  const previousEducation = wipe ? [] : await educationRepo.all();
+  await put('kv', { key: EDUCATION_KEY, value: normaliseEducation([...previousEducation, ...education]) });
   if (bundle.settings) {
     try {
       localStorage.setItem('checkmate:settings', bundle.settings);
@@ -226,5 +256,5 @@ export async function importAll(bundle: ExportBundle, { wipe = true }: { wipe?: 
       /* storage unavailable — ignore */
     }
   }
-  return { games, puzzles, elo };
+  return { games, puzzles, elo, education: education.length };
 }

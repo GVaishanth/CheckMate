@@ -31,7 +31,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       const text = await file.text();
       const bundle = JSON.parse(text) as ExportBundle;
       const counts = await importAll(bundle);
-      toast(`Imported ${counts.games} games, ${counts.puzzles} puzzle records. Reload to see everything.`, 'success');
+      toast(`Imported ${counts.games} games, ${counts.puzzles} puzzles and ${counts.education} lessons. Reloading…`, 'success');
       setTimeout(() => window.location.reload(), 900);
     } catch (err) {
       toast(err instanceof Error ? `Import failed: ${err.message}` : 'Import failed — not a valid file.', 'danger');
@@ -226,7 +226,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           {confirmReset ? (
             <div className="panel panel-pad stack gap-12" style={{ borderColor: 'rgba(224,91,82,0.5)' }}>
               <div className="small">
-                Erase <strong>all</strong> local data — games, puzzle progress, Elo history and settings? This cannot be undone.
+                Erase <strong>all</strong> local data — games, puzzle progress, lesson progress, Elo history and settings? This cannot be undone.
               </div>
               <div className="row">
                 <button className="btn btn-danger btn-sm" onClick={doReset}>

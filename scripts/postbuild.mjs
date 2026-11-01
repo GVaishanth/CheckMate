@@ -3,7 +3,7 @@
  * (Routing is hash-based, so no 404.html SPA fallback is required — every
  * shareable URL is /#/route and always resolves to the site root.)
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -25,8 +25,10 @@ if (missing.length > 0) {
 const html = readFileSync(index, 'utf8');
 const swPath = join(dist, 'sw.js');
 const sw = readFileSync(swPath, 'utf8');
-const stamp = createHash('sha256').update(html).digest('hex').slice(0, 10);
-writeFileSync(swPath, sw.replace('checkmate-v1', `checkmate-${stamp}`));
+const bundledAssets = readdirSync(join(dist, 'assets')).filter((file) => /\.(?:js|css|woff2)$/.test(file)).map((file) => `./assets/${file}`);
+const shell = ['./', './index.html', './manifest.webmanifest', './favicon.svg', ...bundledAssets];
+const stamp = createHash('sha256').update(html).update(sw).update(JSON.stringify(shell)).digest('hex').slice(0, 10);
+writeFileSync(swPath, sw.replace('checkmate-v1', `checkmate-${stamp}`).replace(/const SHELL = \[[^;]*\];/, `const SHELL = ${JSON.stringify(shell)};`));
 
 // Report bundle facts (honest numbers for the build log).
 const assets = (html.match(/assets\/[a-zA-Z0-9._-]+\.js/g) ?? []).length;

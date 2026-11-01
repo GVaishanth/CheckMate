@@ -1,11 +1,4 @@
-/**
- * Service worker — offline-first caching for the static build.
- * Strategy:
- *   - install: pre-cache the app shell (document + manifest + icon)
- *   - fetch:   cache-first for same-origin GETs; responses are cached as
- *              they arrive, so the whole app goes offline after first use
- *   - navigation requests fall back to the cached document (SPA routes)
- */
+/* Production builds include all bundled assets in SHELL. */
 const CACHE = 'checkmate-v1';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './favicon.svg'];
 
@@ -36,7 +29,7 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          void caches.open(CACHE).then((c) => c.put('./', copy));
+          void caches.open(CACHE).then((c) => c.put('./', copy)).catch(() => undefined);
           return res;
         })
         .catch(() => caches.match('./').then((r) => r ?? caches.match('./index.html'))),
@@ -45,12 +38,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(req).then((hit) => {
+    caches.open(CACHE).then((cache) => cache.match(req, { ignoreVary: true })).catch(() => undefined).then((hit) => {
       if (hit) return hit;
       return fetch(req).then((res) => {
         if (res.ok) {
           const copy = res.clone();
-          void caches.open(CACHE).then((c) => c.put(req, copy));
+          void caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => undefined);
         }
         return res;
       });

@@ -1,5 +1,6 @@
 /** Storage schema types. */
 import type { BotStyle } from '../engine/bots';
+import type { LessonProgress } from '../education/progress';
 
 export interface MoveRecord {
   san: string;
@@ -84,6 +85,7 @@ export interface ExportBundle {
   puzzles: PuzzleProgress[];
   elo: EloResult[];
   settings: string | null;
+  education?: LessonProgress[];
 }
 
 export interface BotRecord {

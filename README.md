@@ -1,6 +1,6 @@
 # CHECKMATE
 
-A complete chess platform that runs entirely in the browser: six configurable engine opponents, engine-verified puzzles, a performance-rating test, and peer-to-peer multiplayer — with no backend, no accounts, and no network dependency.
+A complete chess platform that runs entirely in the browser: six configurable engine opponents, interactive opening and checkmate lessons, engine-verified puzzles, a performance-rating test, and peer-to-peer multiplayer — with no backend, no accounts, and no network dependency.
 
 ```
 THINK. CALCULATE. CHECKMATE.
@@ -10,7 +10,7 @@ THINK. CALCULATE. CHECKMATE.
 
 CHECKMATE is a static single-page application. After `npm install && npm run build`, everything the game needs — rules engine, search engine, puzzle dataset, sounds, fonts — is inside `dist/`. Deploy that folder to GitHub Pages (or any static host) and it works, online or offline.
 
-The project is also a portfolio piece about engineering discipline: a from-scratch chess engine, a Web Worker architecture, a host-authoritative WebRTC protocol, and a generated-and-verified puzzle dataset, all in strongly-typed TypeScript with zero runtime dependencies beyond React.
+The rules and search engines are written in TypeScript. Search runs in a Web Worker, multiplayer uses a host-authoritative WebRTC data channel, and puzzles are generated and verified locally. React and React Router are the only runtime libraries.
 
 ## Features
 
@@ -23,6 +23,7 @@ The project is also a portfolio piece about engineering discipline: a from-scrat
 - **Automatic review** — THE ANNOTATOR, the post-game reviewer, replays any finished game move by move: every ply is scored in the engine worker, then the replay walks through with commentary (best / good / inaccuracy / mistake / blunder and the stronger move where one exists), auto-advancing like a lesson recap. Pause, step, skip, and read the per-side verdict at the end. Offered at the end of every mode — bot games, pass & play, and peer-to-peer — with a per-side accuracy and estimated performance rating for both players.
 - **Multiplayer** — direct browser-to-browser WebRTC with manual code exchange, or same-device pass & play.
 - **310 bundled puzzles** in nine tactical categories across four difficulties, with multi-move solutions, retry, solution reveal, and local statistics.
+- **Education** — 18 short lessons: 10 openings and 8 mating patterns. Step through annotated demonstrations, practise on the board, then recall without prompts. Memory cues, common traps, progressive hints and locally scheduled reviews help the ideas stick.
 - **Elo test** — eight engine-verified rounds with a performance estimate, confidence range, and per-category breakdown.
 - **Game history** — every finished game stored locally; reopen and step through ply by ply; import and export PGN.
 - **Command palette** (`Ctrl+K` or `/`), sound design synthesized in the Web Audio API, service-worker offline support, and a keyboard-playable, screen-reader-labelled interface.
@@ -56,6 +57,24 @@ Because there is no signaling relay, STUN or TURN, direct connections work betwe
 ### Puzzles
 
 The dataset is generated offline by this repository's own engine (`scripts/generate-puzzles.ts`): it self-plays fast games, harvests positions where the engine can prove a decisive shot or a forced mate, and classifies the motif — checkmate, fork, pin, skewer, discovered attack, sacrifice, back-rank, endgame conversion, or mixed. Mate lines are extended move by move until checkmate and verified by the test suite; no scraped databases are involved. Solutions accept any move the engine judges equally strong, not just the stored line.
+
+### Education
+
+Open **Learn** in the navigation, or **05 Education** on the home screen. Lesson links use `/#/learn` and `/#/learn/<lesson-id>`.
+
+Each lesson has three stages:
+
+1. **Study** — step through the demonstration, play or pause the line, or tap a move to jump to its position. Every move has a short explanation. A memory cue, three key ideas and a common trap keep the lesson focused.
+2. **Practice** — make the moves on the board, using touch, drag or keyboard. Opening lessons let you choose either colour; the other side replies automatically. Hints first explain the idea, then show a move with its squares highlighted. There is no time limit or lives system.
+3. **Recall** — repeat without the explanation or move list. Hints remain available, but the result distinguishes an unaided recall from an assisted rehearsal.
+
+**Openings:** Italian Game, London System, Scotch Game, Queen’s Gambit Declined, Caro–Kann, French Advance, Classical Sicilian, Ruy Lopez, King’s Indian and Scandinavian. These are selected, legal lines rather than complete repertoires. The drill checks the line being studied; a different legal opening move is not labelled a chess mistake.
+
+**Checkmates:** back-rank, supported queen, smothered mate, rook ladder, Arabian mate, Anastasia’s mate, queen-and-king coordination and rook-and-king opposition. Exercises range from mate in one to mate in three. The demonstrations are illustrative positions, not full endgame courses.
+
+Mate checking is separate from the bot search: a small worker proves the bounded mate against **every legal defence**, accepts alternative forced mating routes, and chooses a valid defence that prolongs the mate. Immediate checkmate is validated by the rules engine. A timeout leaves the position unchanged rather than guessing whether a move wins. If workers are blocked, a smaller bounded check runs locally.
+
+Completed study, practice and recall stages are stored in the existing IndexedDB key-value store. Clean recalls schedule reviews after 1, 3, 7, 14 and 30 days; early repetitions do not advance the spacing. An assisted recall schedules a retry in 10 minutes. The library shows due reviews, and learning progress is included in the existing data export, import and reset controls. If storage is unavailable, the mode stays playable and labels progress as session-only.
 
 ### Elo Test
 
@@ -120,7 +139,7 @@ One motion language: fast (110ms) for state changes, medium (200ms) for piece mo
 
 ## Data & Persistence
 
-- **IndexedDB** (`checkmate` v1): finished games, puzzle progress, Elo results.
+- **IndexedDB** (`checkmate` v1): finished games, puzzle progress, Elo results, and education progress in the existing `kv` store. No database upgrade is required.
 - **localStorage**: settings, puzzle streak. Both are versioned and validated on load; corrupt data falls back to defaults instead of crashing.
 - **Export / import**: one JSON bundle with everything, plus PGN import/export for games. Reset (with confirmation) wipes only this app's data.
 - Nothing is ever uploaded. There is no analytics, no telemetry, no network call at runtime.
@@ -134,12 +153,12 @@ Rules engine (src/chess)
  ↓ Web Worker
 Search engine (src/engine)
  ↓ bundled
-Puzzle dataset + Elo rounds (src/data)
+Puzzle dataset + Elo rounds (src/data) + lessons (src/education)
  ↓ local
 IndexedDB / localStorage persistence
 ```
 
-Everything above works with the network cable pulled — the service worker caches the app shell and all hashed assets after the first visit, and stamped caches are purged on each deploy. Multiplayer is the single exception: peers need a connection *to each other* (not to any server).
+After the first successful service-worker installation, the app can be reloaded and used offline. The production build adds all hashed JavaScript, CSS, fonts and both workers to the precache list, including code for modes not yet opened. Cache names are stamped from the build, and old app caches are purged on activation. Service workers require HTTPS or localhost. Multiplayer is the single exception: peers need a connection *to each other* (not to any server).
 
 ## Technology Stack
 
@@ -147,7 +166,7 @@ Everything above works with the network cable pulled — the service worker cach
 - Vite 5 — build, worker bundling, code splitting
 - Web APIs: Web Workers, WebRTC (data channels), Web Audio, IndexedDB, Cache Storage
 - React Router 6 (hash routing) — the only runtime dependency beyond React
-- Vitest — perft, engine behavior, review, variants, and dataset-integrity tests (49 tests)
+- Vitest — 104 tests covering perft, engine behavior, review, variants, puzzle integrity, lesson legality, forced mates, recall scheduling and education persistence
 - Three self-hosted variable fonts (Space Grotesk, Inter, JetBrains Mono) — no CDN
 
 ## Project Structure
@@ -156,17 +175,18 @@ Everything above works with the network cable pulled — the service worker cach
 src/
   chess/        rules: 0x88 position, Zobrist, PST, SAN, PGN
   engine/       search, evaluation, opening book, bot personalities
-  workers/      engine Web Worker (protocol documented in file header)
+  workers/      engine search and education mate-proof workers
+  education/    annotated lessons, bounded mate proof, recall scheduling
   game/         GameController, engine client, analysis math, hooks
   multiplayer/  WebRTC peer connection
-  pages/        Home, Bots, Multiplayer, Puzzles, EloTest, History, Review
+  pages/        Home, Bots, Multiplayer, Puzzles, Education, EloTest, History, Review
   components/   Board, pieces, move list, modals, palette, shell…
   storage/      IndexedDB repositories, settings, export/import
   audio/        synthesized sound module
   data/         puzzles.json + elo.json (generated offline by scripts/)
   styles/       tokens → base → components → board → pages
 scripts/        dataset generators, benchmarks, postbuild checks, OG-card render
-tests/          perft, engine, dataset integrity
+tests/          perft, engine, review, variants, dataset integrity, education
 ```
 
 ## Running Locally
@@ -177,7 +197,7 @@ npm run dev          # vite dev server
 ```
 
 ```bash
-npm test             # 49 tests: perft, engine, review, variants, puzzle dataset
+npm test             # 104 tests across engine, rules, datasets and education
 npm run typecheck    # strict TS for app + tools
 npm run bench        # engine nodes/second benchmark
 npm run gen:puzzles  # regenerate the puzzle dataset (offline, ~20 min)
@@ -213,7 +233,7 @@ Expected to work in current Chrome, Edge, Firefox, and Safari (desktop and mobil
 - The engine never blocks the UI: all search and analysis run in a Web Worker; a depth indicator streams from progress messages.
 - The main-thread engine fallback loads lazily as a separate chunk; the puzzle dataset is a single typed JSON import.
 - Animations use transforms/opacity only; the decorative hero canvas is static under reduced motion and pauses when the tab is hidden.
-- Total shipped JS is ~130 KB gzipped (plus ~9 KB gzipped CSS); three woff2 fonts ~104 KB; no other assets.
+- JavaScript chunks total about 142 KB gzipped, excluding the two worker bundles; CSS is about 11 KB gzipped. Three self-hosted woff2 fonts total about 102 KB. The build log reports current sizes.
 
 ## Design Philosophy
 
@@ -223,7 +243,7 @@ Dark, quiet, and precise: a near-black surface, ivory text, one gold accent rese
 
 - No global matchmaking or signaling relay: P2P works best on the same machine or LAN; cross-network connections depend on the path between browsers.
 - The Elo number is an experimental local estimate, not a federation rating.
-- No chess clocks, no engine analysis graph, no opening explorer (yet).
+- No chess clocks, engine analysis graph or exhaustive opening explorer. Education covers selected opening lines and short mating patterns.
 - Variants are engine-searched but not engine-evaluated: the bots see forced hill races and third checks within the search horizon, but the static evaluation carries no variant-specific terms. P2P games are standard chess only.
 - Bots are honest club-level opponents, not grandmaster-strength by any absolute measure.
 

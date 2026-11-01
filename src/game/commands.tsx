@@ -63,6 +63,7 @@ export function useGlobalCommands(): Command[] {
       { id: 'nav-bots', label: 'Play vs Bot', group: 'Navigate', keywords: 'play game computer opponent', run: () => navigate('/bots') },
       { id: 'nav-mp', label: 'Multiplayer', group: 'Navigate', keywords: 'p2p friend webrtc local', run: () => navigate('/multiplayer') },
       { id: 'nav-puzzles', label: 'Puzzles', group: 'Navigate', keywords: 'tactics training', run: () => navigate('/puzzles') },
+      { id: 'nav-learn', label: 'Education', group: 'Navigate', keywords: 'learn study opening checkmate practice recall lesson', run: () => navigate('/learn') },
       { id: 'nav-elo', label: 'Test Elo', group: 'Navigate', keywords: 'rating strength estimate', run: () => navigate('/elo-test') },
       { id: 'nav-history', label: 'Game History', group: 'Navigate', keywords: 'pgn games archive', run: () => navigate('/history') },
     ],

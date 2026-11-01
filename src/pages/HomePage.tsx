@@ -64,6 +64,10 @@ export function HomePage() {
               <span className="mode-strip-num">04</span>
               <span className="mode-strip-name">MULTIPLAYER</span>
             </Link>
+            <Link className="mode-strip-item" to="/learn">
+              <span className="mode-strip-num">05</span>
+              <span className="mode-strip-name">EDUCATION</span>
+            </Link>
           </nav>
         </div>
       </section>

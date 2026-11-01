@@ -5,6 +5,7 @@ import { IconKnight, IconSettings } from './icons';
 const NAV = [
   { to: '/bots', label: 'PLAY' },
   { to: '/puzzles', label: 'PUZZLES' },
+  { to: '/learn', label: 'LEARN' },
   { to: '/elo-test', label: 'ELO TEST' },
   { to: '/multiplayer', label: 'MULTIPLAYER' },
   { to: '/history', label: 'HISTORY' },

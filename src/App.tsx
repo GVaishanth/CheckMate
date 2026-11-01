@@ -17,6 +17,7 @@ import { HomePage } from './pages/HomePage';
 import { BotsPage } from './pages/BotsPage';
 import { MultiplayerPage } from './pages/MultiplayerPage';
 import { PuzzlesPage } from './pages/PuzzlesPage';
+import { EducationPage } from './pages/EducationPage';
 import { EloTestPage } from './pages/EloTestPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -115,6 +116,8 @@ export function App() {
                   <Route path="/bots" element={<BotsPage />} />
                   <Route path="/multiplayer" element={<MultiplayerPage />} />
                   <Route path="/puzzles" element={<PuzzlesPage />} />
+                  <Route path="/learn" element={<EducationPage />} />
+                  <Route path="/learn/:lessonId" element={<EducationPage />} />
                   <Route path="/elo-test" element={<EloTestPage />} />
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/review/:id" element={<HistoryPage />} />
