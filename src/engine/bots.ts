@@ -34,7 +34,7 @@ export const BOTS: BotStyle[] = [
     name: 'ROOKIE',
     elo: '600–800',
     tagline: 'Learns the ropes. Takes what is given — and sometimes gives it back.',
-    traits: ['1-ply search', 'material-only evaluation', 'frequent blunders', 'no opening theory'],
+    traits: ['1-ply search', 'material and piece placement', 'frequent blunders', 'no opening theory'],
     depth: 1, softMs: 250, noiseCp: 130, blunderRate: 0.3, quiescence: false,
     profile: 'basic', bookPly: 0, rankRoot: true, pips: 1,
   },

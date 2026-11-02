@@ -1,7 +1,7 @@
 {
   "name": "CHECKMATE — Browser-Native Chess Arena",
   "short_name": "CHECKMATE",
-  "description": "Local AI opponents, offline puzzles, Elo estimation and peer-to-peer multiplayer. Runs entirely in your browser.",
+  "description": "Local engine opponents, offline puzzles, Elo estimation and peer-to-peer multiplayer. Runs entirely in your browser.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

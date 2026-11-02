@@ -71,7 +71,15 @@ describe('review annotations + summary', () => {
 
   it('handles a game with zero moves', () => {
     const sum = summarizeReview([], []);
-    expect(sum.white.accuracy).toBe(100);
+    expect(sum.white.accuracy).toBeNull();
     expect(sum.white.performance).toBeNull();
   });
+});
+
+it('does not assign accuracy to a seat that never moved', () => {
+  const annotations = buildAnnotations(START_FEN, [{ san: 'e4', uci: 'e2e4' }], [0], [null]);
+  const summary = summarizeReview(annotations, [0]);
+  expect(summary.white.accuracy).toBe(100);
+  expect(summary.black.accuracy).toBeNull();
+  expect(summary.black.performance).toBeNull();
 });

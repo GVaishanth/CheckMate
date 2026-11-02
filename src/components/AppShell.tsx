@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { IconKnight, IconSettings } from './icons';
 
 const NAV = [
@@ -13,10 +13,21 @@ const NAV = [
 
 export function AppShell({ children, onOpenSettings }: { children: React.ReactNode; onOpenSettings: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const { pathname } = useLocation();
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) { setMenuOpen(false); menuButton.current?.focus(); }
+    };
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, [menuOpen]);
 
   return (
     <>
-      <a href="#main" className="skip-link">Skip to content</a>
+      <a href="#main" className="skip-link" onClick={(event) => { event.preventDefault(); const main = document.getElementById('main'); main?.focus(); main?.scrollIntoView({ block: 'start' }); }}>Skip to content</a>
       <header className="nav">
         <div className="container nav-inner">
           <Link to="/" className="nav-logo" aria-label="CHECKMATE — home">
@@ -38,6 +49,8 @@ export function AppShell({ children, onOpenSettings }: { children: React.ReactNo
             </button>
             <button
               className="nav-burger"
+              ref={menuButton}
+              aria-controls="mobile-navigation"
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
               aria-label="Menu"
@@ -50,7 +63,7 @@ export function AppShell({ children, onOpenSettings }: { children: React.ReactNo
         </div>
 
         {menuOpen && (
-          <nav className="nav-mobile" aria-label="Mobile">
+          <nav id="mobile-navigation" className="nav-mobile" aria-label="Mobile">
             {NAV.map(({ to, label }) => (
               <NavLink
                 key={to}
@@ -72,7 +85,7 @@ export function AppShell({ children, onOpenSettings }: { children: React.ReactNo
         )}
       </header>
 
-      <main id="main" className="main">
+      <main id="main" className="main" tabIndex={-1}>
         {children}
       </main>
 

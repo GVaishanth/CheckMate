@@ -2,7 +2,7 @@
  * App root — routing, settings provider, global overlays (settings modal,
  * command palette, toasts), hotkeys, error boundary and PWA registration.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { sound } from './audio/sound';
@@ -11,17 +11,18 @@ import { SettingsModal } from './components/SettingsModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ErrorScreen } from './components/ErrorScreen';
 import {
-  DEFAULT_SETTINGS, Settings, SettingsContext, loadSettings, saveSettings,
+  DEFAULT_SETTINGS, Settings, SettingsContext, loadSettings, saveSettings, normaliseSettings,
 } from './storage/settings';
 import { HomePage } from './pages/HomePage';
 import { BotsPage } from './pages/BotsPage';
 import { MultiplayerPage } from './pages/MultiplayerPage';
 import { PuzzlesPage } from './pages/PuzzlesPage';
-import { EducationPage } from './pages/EducationPage';
 import { EloTestPage } from './pages/EloTestPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { CommandRegistry } from './game/commands';
+
+const EducationPage = lazy(() => import('./pages/EducationPage').then((module) => ({ default: module.EducationPage })));
 
 export function App() {
   const [settings, setSettings] = useState<Settings>(() => {
@@ -34,20 +35,22 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [storageOk, setStorageOk] = useState(true);
+  const [dataVersion, setDataVersion] = useState(0);
+  useEffect(() => {
+    const changed = () => setDataVersion((value) => value + 1);
+    window.addEventListener('checkmate:data-changed', changed);
+    return () => window.removeEventListener('checkmate:data-changed', changed);
+  }, []);
 
   useEffect(() => {
-    try {
-      saveSettings(settings);
-    } catch {
-      setStorageOk(false);
-    }
+    setStorageOk(saveSettings(settings));
     document.documentElement.dataset.boardTheme = settings.boardTheme;
     document.documentElement.dataset.highContrast = String(settings.highContrast);
     document.documentElement.dataset.reducedMotion = String(settings.reducedMotion === 'on');
   }, [settings]);
 
   const update = useCallback((patch: Partial<Settings>) => {
-    setSettings((prev) => ({ ...prev, ...patch }));
+    setSettings((prev) => normaliseSettings({ ...prev, ...patch }));
   }, []);
 
   const resetSettings = useCallback(() => setSettings({ ...DEFAULT_SETTINGS }), []);
@@ -111,13 +114,13 @@ export function App() {
           <CommandRegistry>
             <HashRouter>
               <AppShell onOpenSettings={() => setSettingsOpen(true)}>
-                <Routes>
+                <Routes key={dataVersion}>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/bots" element={<BotsPage />} />
                   <Route path="/multiplayer" element={<MultiplayerPage />} />
                   <Route path="/puzzles" element={<PuzzlesPage />} />
-                  <Route path="/learn" element={<EducationPage />} />
-                  <Route path="/learn/:lessonId" element={<EducationPage />} />
+                  <Route path="/learn" element={<Suspense fallback={<div className="page container" role="status">Loading your course…</div>}><EducationPage /></Suspense>} />
+                  <Route path="/learn/:lessonId" element={<Suspense fallback={<div className="page container" role="status">Loading your course…</div>}><EducationPage /></Suspense>} />
                   <Route path="/elo-test" element={<EloTestPage />} />
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/review/:id" element={<HistoryPage />} />

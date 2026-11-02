@@ -12,9 +12,9 @@ const mates = LESSONS.filter((lesson) => lesson.kind === 'checkmate');
 const DAY = 86_400_000;
 
 describe('education lessons', () => {
-  it('contains ten openings and eight distinct mating lessons', () => {
-    expect(openings).toHaveLength(10);
-    expect(mates).toHaveLength(8);
+  it('contains 120 openings and 120 distinct mating exercises', () => {
+    expect(openings).toHaveLength(120);
+    expect(mates).toHaveLength(120);
     expect(new Set(LESSONS.map((lesson) => lesson.id)).size).toBe(LESSONS.length);
     expect(lessonById('missing')).toBeUndefined();
   });

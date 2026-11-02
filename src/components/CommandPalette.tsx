@@ -5,6 +5,8 @@ import {
   IconBots, IconFlip, IconGauge, IconHistory, IconKnight, IconLink, IconList, IconPlay,
   IconPuzzle, IconSettings, IconSound, IconMute,
 } from './icons';
+import { ToastHost } from './Toast';
+import { useDialogFocus } from './useDialogFocus';
 import { useSettings } from '../storage/settings';
 import { sound } from '../audio/sound';
 
@@ -26,6 +28,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(panelRef, onClose);
   const listRef = useRef<HTMLDivElement>(null);
   const { commands: contextual } = useCommands();
   const { settings, update } = useSettings();
@@ -33,20 +37,6 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   const systemCommands: Command[] = useMemo(() => {
     const cmds: Command[] = [
-      {
-        id: 'sys-flip',
-        label: 'Flip Board',
-        group: 'System',
-        hint: 'F',
-        run: () => window.dispatchEvent(new CustomEvent('checkmate:flip-board')),
-      },
-      {
-        id: 'sys-moves',
-        label: 'Toggle Move List',
-        group: 'System',
-        hint: 'M',
-        run: () => window.dispatchEvent(new CustomEvent('checkmate:toggle-moves')),
-      },
       {
         id: 'sys-sound',
         label: settings.sound ? 'Mute Sound' : 'Unmute Sound',
@@ -63,12 +53,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         group: 'System',
         run: () => window.dispatchEvent(new CustomEvent('checkmate:open-settings')),
       },
-      {
-        id: 'sys-new',
-        label: 'New Game',
-        group: 'System',
-        run: () => window.dispatchEvent(new CustomEvent('checkmate:new-game')),
-      },
+
     ];
     return cmds;
   }, [settings.sound, update]);
@@ -93,14 +78,13 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   const runCommand = (cmd: Command) => {
     onClose();
-    // Let the palette close before navigation/actions fire.
-    setTimeout(() => cmd.run(), 10);
+    queueMicrotask(() => cmd.run());
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelected((s) => Math.min(filtered.length - 1, s + 1));
+      setSelected((s) => Math.max(0, Math.min(filtered.length - 1, s + 1)));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelected((s) => Math.max(0, s - 1));
@@ -123,7 +107,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="palette-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+      <div className="palette" ref={panelRef} role="dialog" aria-modal="true" aria-label="Command palette">
+        <ToastHost />
         <input
           ref={inputRef}
           className="palette-input"

@@ -20,12 +20,25 @@ class ProofLimit extends Error {}
 function prove(position: Position, attacker: Color, plies: number, budget: Budget): Proof | null {
   budget.nodes++;
   if (budget.nodes > budget.maxNodes || ((budget.nodes & 127) === 0 && performance.now() > budget.deadline)) throw new ProofLimit();
+  if (plies <= 0 && !position.inCheck()) return null;
   const key = `${position.fen()}|${attacker}|${plies}`;
   if (budget.memo.has(key)) return budget.memo.get(key)!;
   const moves = position.getLegalMoves();
   if (moves.length === 0) return position.inCheck() && position.stm !== attacker ? { distance: 0, line: [] } : null;
   if (plies <= 0 || position.isDrawByFiftyMoves() || position.isInsufficientMaterial()) return null;
   const attacking = position.stm === attacker;
+  if (attacking && plies > 1) {
+    const priorities = new Map<number, number>();
+    for (const move of moves) {
+      const encoded = encodeMoveObj(move);
+      const capture = position.pieceAt(move.to) !== 0;
+      position.makeMove(encoded);
+      const checking = position.inCheck();
+      position.undoMove();
+      priorities.set(encoded, (checking ? 100 : 0) + (move.promo ? 20 : 0) + (capture ? 10 : 0));
+    }
+    moves.sort((a, b) => priorities.get(encodeMoveObj(b))! - priorities.get(encodeMoveObj(a))!);
+  }
   let best: Proof | null = null;
   for (const move of moves) {
     const encoded = encodeMoveObj(move);

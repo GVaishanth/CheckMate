@@ -1,8 +1,5 @@
-/**
- * Puzzles — offline tactical training. Every position was generated and
- * verified by the bundled engine; solutions are engine PVs. Player moves are
- * judged by engine move-quality (centipawn loss), so any winning line passes.
- */
+import { ActionButton } from '../components/ActionButton';
+/** Local tactical practice, judged against the bundled engine. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Board, BoardAnimate, Orientation } from '../components/Board';
 import { MoveList } from '../components/MoveList';
@@ -14,11 +11,14 @@ import {
   CATEGORY_LABELS, DIFFICULTY_LABELS, PUZZLES, Puzzle, PuzzleCategory, puzzlesMatching,
 } from '../data/puzzles';
 import { engineClient } from '../game/engineClient';
+import { useJobScope } from '../game/jobScope';
+import { Modal } from '../components/Modal';
 
 import { BLACK, Color, PieceType, WHITE } from '../chess/constants';
 import { moveSoundName, sound } from '../audio/sound';
 import { useSettings } from '../storage/settings';
-import { puzzlesRepo, PuzzleProgress } from '../storage/db';
+import { loadStreak, loadBestStreak, saveStreak } from '../storage/streak';
+import { puzzlesRepo, PuzzleProgress, dataRevision } from '../storage/db';
 import { BotStyle } from '../engine/bots';
 import { IconBolt, IconFlip, IconList, IconPuzzle, IconTarget, IconTrophy } from '../components/icons';
 
@@ -37,22 +37,26 @@ export function PuzzlesPage() {
   const [category, setCategory] = useState<PuzzleCategory | 'all'>('all');
   const [difficulty, setDifficulty] = useState<number | 'all'>('all');
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
+  const [puzzleKey, setPuzzleKey] = useState(0);
+  const alive = useRef(false), pickToken = useRef(0);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; pickToken.current++; }; }, []);
   const [stats, setStats] = useState<{ solved: number; attempted: number; bestStreak: number; avgMs: number; accuracy: number } | null>(null);
 
   const refreshStats = useCallback(async () => {
     try {
       const rows = await puzzlesRepo.all();
       const solved = rows.filter((r) => r.status === 'solved');
-      const attempts = rows.reduce((a, r) => a + Math.max(1, r.attempts ?? 0), 0);
+      const timed = solved.filter((row) => typeof row.bestTimeMs === 'number' && Number.isFinite(row.bestTimeMs) && row.bestTimeMs >= 0);
+      if (!alive.current) return;
       setStats({
         solved: solved.length,
         attempted: rows.length,
-        bestStreak: rows.reduce((a, r) => Math.max(a, r.bestStreak ?? 0), 0),
-        avgMs: solved.length ? solved.reduce((a, r) => a + (r.bestTimeMs ?? 0), 0) / solved.length : 0,
-        accuracy: attempts ? Math.round((solved.length / attempts) * 100) : 100,
+        bestStreak: Math.max(loadBestStreak(), rows.reduce((a, r) => Math.max(a, r.bestStreak ?? 0), 0)),
+        avgMs: timed.length ? timed.reduce((sum, row) => sum + row.bestTimeMs!, 0) / timed.length : 0,
+        accuracy: rows.length ? Math.round((solved.length / rows.length) * 100) : 0,
       });
     } catch {
-      setStats({ solved: 0, attempted: 0, bestStreak: 0, avgMs: 0, accuracy: 100 });
+      if (alive.current) setStats({ solved: 0, attempted: 0, bestStreak: 0, avgMs: 0, accuracy: 0 });
     }
   }, []);
 
@@ -60,19 +64,6 @@ export function PuzzlesPage() {
     void refreshStats();
   }, [refreshStats]);
 
-  useRegisterCommands(
-    useMemo(
-      () => [
-        {
-          id: 'puzzle-next',
-          label: 'Next Puzzle',
-          group: 'Puzzles',
-          run: () => window.dispatchEvent(new CustomEvent('checkmate:next-puzzle')),
-        },
-      ],
-      [],
-    ),
-  );
 
   const pickNext = useCallback(
     async (current: Puzzle | null) => {
@@ -85,7 +76,7 @@ export function PuzzlesPage() {
         progress = [];
       }
       const solvedIds = new Set(progress.filter((p) => p.status === 'solved').map((p) => p.puzzleId));
-      const fresh = pool.find((p) => !solvedIds.has(p.id));
+      const fresh = pool.find((p) => p.id !== current?.id && !solvedIds.has(p.id));
       const next = fresh ?? pool[(pool.indexOf(current ?? pool[0]!) + 1) % pool.length] ?? null;
       return next;
     },
@@ -93,7 +84,7 @@ export function PuzzlesPage() {
   );
 
   const start = (p: Puzzle | null) => {
-    setPuzzle(p);
+    pickToken.current++; setPuzzle(p); setPuzzleKey((value) => value + 1);
     sound.unlock();
   };
 
@@ -116,9 +107,9 @@ export function PuzzlesPage() {
 
           <div className="stat-grid mb-24">
             <StatCell label="Solved" value={stats ? String(stats.solved) : '…'} />
-            <StatCell label="Accuracy" value={stats ? `${stats.accuracy}%` : '…'} />
+            <StatCell label="Positions solved" value={stats ? `${stats.accuracy}%` : '…'} />
             <StatCell label="Best streak" value={stats ? String(stats.bestStreak) : '…'} />
-            <StatCell label="Avg time" value={stats ? (stats.avgMs ? `${(stats.avgMs / 1000).toFixed(1)}s` : '—') : '…'} />
+            <StatCell label="Avg. best time" value={stats ? (stats.avgMs ? `${(stats.avgMs / 1000).toFixed(1)}s` : '—') : '…'} />
           </div>
 
           <div className="panel" style={{ maxWidth: 720 }}>
@@ -160,13 +151,13 @@ export function PuzzlesPage() {
                 </div>
               )}
               <div>
-                <button
+                <ActionButton
                   className="btn btn-primary btn-lg"
-                  disabled={pool.length === 0}
+                  blockedReason={pool.length === 0 && 'No puzzles match these filters. Choose another theme or difficulty.'}
                   onClick={() => void pickNext(null).then(start)}
                 >
                   <IconPuzzle size={16} /> START TRAINING
-                </button>
+                </ActionButton>
               </div>
             </div>
           </div>
@@ -179,15 +170,15 @@ export function PuzzlesPage() {
     <div className="page">
       <div className="container">
         <PuzzlePlayer
-          key={puzzle.id}
+          key={`${puzzle.id}:${puzzleKey}`}
           puzzle={puzzle}
           onStats={refreshStats}
           onNext={async () => {
-            const next = await pickNext(puzzle);
-            if (next) start(next);
-            else setPuzzle(null);
+            const token = ++pickToken.current, next = await pickNext(puzzle);
+            if (!alive.current || token !== pickToken.current) return;
+            if (next) start(next); else setPuzzle(null);
           }}
-          onExit={() => setPuzzle(null)}
+          onExit={() => { pickToken.current++; setPuzzle(null); }}
           filterLabel={`${category === 'all' ? 'ALL' : category.toUpperCase()} · ${
             difficulty === 'all' ? 'ALL LEVELS' : DIFFICULTY_LABELS[difficulty]
           }`}
@@ -197,7 +188,6 @@ export function PuzzlesPage() {
   );
 }
 
-// ------------------------------------------------------------------ player
 
 function PuzzlePlayer({
   puzzle, onStats, onNext, onExit, filterLabel,
@@ -215,9 +205,12 @@ function PuzzlePlayer({
     [puzzle.fen],
   );
   const version = useControllerVersion(controller);
+  const matingPuzzle = puzzle.category === 'checkmate' || puzzle.category === 'back-rank' || puzzle.category === 'endgame';
   const solverColor: Color = puzzle.sideToMove === 'white' ? WHITE : BLACK;
   const [orientation, flip] = useOrientation(puzzle.sideToMove);
-  const [phase, setPhase] = useState<Phase>('playing');
+  const [phase, renderPhase] = useState<Phase>('playing');
+  const phaseRef = useRef<Phase>('playing');
+  const setPhase = (value: Phase) => { phaseRef.current = value; renderPhase(value); };
   const [wrong, setWrong] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -226,14 +219,20 @@ function PuzzlePlayer({
   const [elapsed, setElapsed] = useState(0);
   const [streak, setStreak] = useState(() => loadStreak());
   const [playerMoveCount, setPlayerMoveCount] = useState(0);
-  const startedAt = useRef(Date.now());
-  const attempts = useRef(0);
+  const startedAt = useRef(performance.now());
+  const scope = useJobScope(), revision = useRef(dataRevision()), completed = useRef(false);
+  const operation = useRef<AbortController | null>(null);
+  const [defenceError, setDefenceError] = useState(false);
   const busy = useRef(false);
   const [moveListOpen, setMoveListOpen] = useState(true);
+  useRegisterCommands([
+    { id: 'board-moves', label: 'Toggle Move List', group: 'Puzzles', hint: 'M', run: () => setMoveListOpen((value) => !value) },
+    ...((phase === 'solved' || phase === 'failed') ? [{ id: 'puzzle-next', label: 'Next Puzzle', group: 'Puzzles', run: () => void onNext() }] : []),
+  ]);
 
   useEffect(() => {
     if (phase !== 'playing') return undefined;
-    const iv = window.setInterval(() => setElapsed(Date.now() - startedAt.current), 250);
+    const iv = window.setInterval(() => setElapsed(Math.max(0, Math.round(performance.now() - startedAt.current))), 250);
     return () => window.clearInterval(iv);
   }, [phase]);
 
@@ -257,49 +256,46 @@ function PuzzlePlayer({
     return () => window.removeEventListener('checkmate:next-puzzle', onNextEvt);
   }, [phase, onNext]);
 
-  const record = async (status: 'solved' | 'failed', timeMs: number) => {
-    try {
-      const existing = await puzzlesRepo.forPuzzle(puzzle.id);
-      await puzzlesRepo.put({
-        key: puzzle.id,
-        puzzleId: puzzle.id,
-        status: existing?.status === 'solved' && status === 'failed' ? 'solved' : status,
-        attempts: (existing?.attempts ?? 0) + 1,
-        bestTimeMs:
-          status === 'solved'
-            ? Math.min(existing?.bestTimeMs ?? Infinity, timeMs)
-            : existing?.bestTimeMs,
-        bestStreak: status === 'solved' ? Math.max(existing?.bestStreak ?? 0, streak + 1) : (existing?.bestStreak ?? 0),
-        solvedAt: status === 'solved' ? Date.now() : existing?.solvedAt,
-        lastTriedAt: Date.now(),
-      });
-    } catch {
-      /* storage unavailable — session-only */
-    }
+  const record = async (status: 'solved' | 'failed', timeMs: number, currentStreak: number) => {
+    await puzzlesRepo.record(puzzle.id, status, timeMs, currentStreak, revision.current);
     await onStats();
   };
-
   const solve = async (silent = false) => {
-    const timeMs = Date.now() - startedAt.current;
-    setPhase('solved');
+    if (completed.current || !scope.active || revision.current !== dataRevision()) return;
+    completed.current = true;
+    const timeMs = Math.max(0, Math.round(performance.now() - startedAt.current)), nextStreak = streak + 1;
+    setElapsed(timeMs); setPhase('solved'); setStreak(nextStreak); saveStreak(nextStreak);
     if (!silent) sound.play('solved');
-    const nextStreak = streak + 1;
-    setStreak(nextStreak);
-    saveStreak(nextStreak);
-    await record('solved', timeMs);
+    await record('solved', timeMs, nextStreak);
   };
-
   const fail = async () => {
-    setPhase('failed');
-    setStreak(0);
-    saveStreak(0);
-    sound.play('wrong');
-    await record('failed', Date.now() - startedAt.current);
+    if (completed.current || !scope.active || revision.current !== dataRevision()) return;
+    completed.current = true;
+    const timeMs = Math.max(0, Math.round(performance.now() - startedAt.current));
+    setElapsed(timeMs); setPhase('failed'); setStreak(0); saveStreak(0); sound.play('wrong');
+    await record('failed', timeMs, 0);
   };
-
+  const live = (abort: AbortController) => scope.active && !abort.signal.aborted && revision.current === dataRevision() && phaseRef.current === 'playing';
+  const defend = async (abort: AbortController) => {
+    const onLine = controller.moves.every((move, index) => move.uci === puzzle.line[index]);
+    const stored = onLine ? puzzle.line[controller.moves.length] : undefined;
+    const reply = stored && controller.position.uciToMove(stored) !== null ? stored : (await engineClient.search({
+      gameId: `puzzle-${puzzle.id}`, startFen: puzzle.fen, moves: controller.moves.map((move) => move.uci), style: DEFENDER, signal: abort.signal,
+    })).uci;
+    if (!live(abort)) return;
+    if (!reply) throw new Error('No defence available');
+    const record = controller.applyUci(reply);
+    if (!record) throw new Error('Illegal defence');
+    setDefenceError(false); setAnimate(settings.animateMoves ? uciToAnim(reply, record.capture) : null);
+    scope.later(() => sound.play(moveSoundName(record)), 120);
+    if (controller.end) {
+      if (controller.end.winner === (solverColor === WHITE ? 'white' : 'black')) void solve();
+      else { setFeedback(controller.end.winner === null ? 'Drawn — the win was there.' : 'The defence held.'); void fail(); }
+    }
+  };
   /** Validate + apply a solver move; drive the opponent reply. */
   const onMove = async (from: number, to: number, promo: PieceType | null): Promise<boolean> => {
-    if (phase !== 'playing' || checking || busy.current) return false;
+    if (!scope.active || phaseRef.current !== 'playing' || checking || busy.current || controller.phase !== 'playing' || controller.turn !== solverColor) return false;
     const fenBefore = controller.position.fen();
     const captured = controller.position.pieceAt(to);
 
@@ -320,14 +316,14 @@ function PuzzlePlayer({
       }
     }
 
-    busy.current = true;
-    setChecking(true);
+    const abort = scope.request(); operation.current = abort;
+    busy.current = true; setChecking(true);
     try {
       const uci = sqAlg(from) + sqAlg(to) + promoLetter(promo);
-      const q = await engineClient.analyzeMove({ fen: fenBefore, playedUci: uci, depth: 7 });
+      const q = await engineClient.analyzeMove({ fen: fenBefore, playedUci: uci, depth: 7, signal: abort.signal });
+      if (!live(abort)) return false;
       if (q.lossCp > LOSS_TOLERANCE_CP || (q.bestScore < 0 && controller.moves.length === 0)) {
         // Not the shot (or the puzzle is not actually winning for the solver).
-        attempts.current++;
         const w = wrong + 1;
         setWrong(w);
         sound.play('wrong');
@@ -351,7 +347,7 @@ function PuzzlePlayer({
       const moved = playerMoveCount + 1;
       setPlayerMoveCount(moved);
 
-      // Terminal: solution length reached (tactics) or draw/insufficient happened.
+      // Mate drills continue past the stored line until the board confirms the result.
       if (controller.end) {
         if (controller.end?.winner === null) {
           setFeedback('Drawn — the win was there.');
@@ -361,45 +357,26 @@ function PuzzlePlayer({
         }
         return true;
       }
-      if (moved >= puzzle.solution.length) {
+      if (!matingPuzzle && moved >= puzzle.solution.length) {
         setFeedback('Conversion complete — the rest is technique.');
         void solve();
         return true;
       }
 
-      // Opponent replies: stored defense when still legal, engine otherwise.
-      const stored = puzzle.line[controller.moves.length] ?? null;
-      let reply = stored && controller.position.uciToMove(stored) !== null ? stored : null;
-      if (!reply) {
-        const r = await engineClient.search({
-          gameId: `puzzle-${puzzle.id}`,
-          startFen: puzzle.fen,
-          moves: controller.moves.map((m) => m.uci),
-          style: DEFENDER,
-        });
-        reply = r.uci;
-      }
-      if (reply && controller.phase === 'playing') {
-        const replyRec = controller.applyUci(reply);
-        if (replyRec) {
-          setAnimate(settings.animateMoves ? uciToAnim(reply, replyRec.capture) : null);
-          window.setTimeout(() => sound.play(moveSoundName(replyRec)), 120);
-        }
-      }
+      await defend(abort);
       return true;
     } catch {
-      toast('Could not verify the move — engine unavailable.', 'danger');
+      if (live(abort)) { setDefenceError(controller.turn !== solverColor); toast('Engine unavailable. Retry when ready.', 'danger'); }
       return false;
     } finally {
-      setChecking(false);
-      busy.current = false;
+      scope.release(abort);
+      if (scope.active && operation.current === abort) { setChecking(false); busy.current = false; }
     }
   };
 
-  const interactive = phase === 'playing' && !checking && controller.turn === solverColor;
+  const interactive = phase === 'playing' && !checking && controller.phase === 'playing' && controller.turn === solverColor;
   const legalFor = useCallback(
     (sq: number) => (interactive ? controller.movesFrom(sq) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [controller, interactive, version],
   );
   const selectable = useCallback(
@@ -408,18 +385,18 @@ function PuzzlePlayer({
       const piece = controller.position.pieceAt(sq);
       return piece !== 0 && (piece >> 3) === (solverColor === WHITE ? 0 : 1);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [controller, interactive, solverColor, version],
   );
 
   const retry = () => {
+    scope.reset(); operation.current = null; busy.current = false; completed.current = false; setChecking(false); setDefenceError(false); setAnimate(null);
     controller.reset();
     setPhase('playing');
     setWrong(0);
     setFeedback(null);
     setPlayerMoveCount(0);
     setShowSolution(false);
-    startedAt.current = Date.now();
+    startedAt.current = performance.now();
     setElapsed(0);
   };
 
@@ -463,6 +440,14 @@ function PuzzlePlayer({
           </div>
         </div>
 
+        {engineClient.workerFailed && <p className="small muted" role="status">Worker unavailable. Move checks use a shorter local search.</p>}
+        {defenceError && phase === 'playing' && <div className="panel panel-pad" role="alert"><p>The defence could not move.</p><ActionButton className="btn btn-sm" blockedReason={checking && 'Move verification is still running. Wait for it to finish before retrying.'} onClick={() => {
+          if (busy.current || phaseRef.current !== 'playing') return;
+          const abort = scope.request(); operation.current = abort; busy.current = true; setChecking(true);
+          void defend(abort).catch(() => { if (live(abort)) toast('Defence unavailable. You can retry or skip.', 'danger'); }).finally(() => {
+            scope.release(abort); if (scope.active && operation.current === abort) { setChecking(false); busy.current = false; }
+          });
+        }}>RETRY DEFENCE</ActionButton></div>}
         {feedback && (
           <div className={`puzzle-feedback ${phase === 'solved' ? 'ok' : phase === 'failed' ? 'bad' : ''}`} role="status">
             {phase === 'solved' && <IconTrophy size={14} />}
@@ -483,11 +468,11 @@ function PuzzlePlayer({
             </button>
           )}
           {(phase === 'failed' || (phase === 'playing' && wrong >= 1)) && (
-            <button className="btn" onClick={() => setShowSolution(true)}>
+            <button className="btn" onClick={() => { if (phaseRef.current === 'playing') void fail(); setShowSolution(true); }}>
               <IconList size={13} /> SOLUTION
             </button>
           )}
-          <button className="btn btn-ghost" onClick={() => void onNext()} disabled={phase === 'playing' && controller.moves.length === 0}>
+          <button className="btn btn-ghost" onClick={() => void onNext()}>
             SKIP
           </button>
           <button className="btn btn-ghost" onClick={onExit}>FILTERS</button>
@@ -507,7 +492,7 @@ function PuzzlePlayer({
             </div>
             <div className="tiny faint">
               {puzzle.sideToMove === 'white' ? 'White' : 'Black'} to move ·{' '}
-              {puzzle.solution.length > 1 ? `${puzzle.solution.length} key moves` : 'one key move'}
+              {matingPuzzle ? `play to checkmate · ${puzzle.solution.length} moves in the stored line` : puzzle.solution.length > 1 ? `${puzzle.solution.length} key moves` : 'one key move'}
             </div>
             <div className="divider" />
             <div className="spread small">
@@ -519,7 +504,7 @@ function PuzzlePlayer({
 
         <div className="panel">
           <div className="panel-title">Moves</div>
-          <MoveList sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
+          <MoveList startFen={controller.position.startFen} sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
         </div>
 
         <div className="tiny faint" style={{ padding: '0 4px' }}>
@@ -528,9 +513,7 @@ function PuzzlePlayer({
       </div>
 
       {showSolution && (
-        <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Solution">
-          <div className="panel stack" style={{ maxWidth: 440 }}>
-            <div className="panel-title">Solution</div>
+        <Modal title="Solution" onClose={() => setShowSolution(false)} closeLabel="Close solution">
             <div className="panel-pad stack gap-12">
             <p className="small" style={{ margin: 0 }}>{puzzle.motif}</p>
             <div className="mono small solution-line">
@@ -544,14 +527,12 @@ function PuzzlePlayer({
               <button className="btn btn-primary btn-sm" onClick={() => setShowSolution(false)}>CLOSE</button>
             </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
 }
 
-// ------------------------------------------------------------------ helpers
 
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
@@ -597,27 +578,3 @@ function uciToSan(puzzle: Puzzle, plyIndex: number): string {
   }
 }
 
-const STREAK_KEY = 'checkmate:puzzle-streak';
-function loadStreak(): number {
-  try {
-    return Number(localStorage.getItem(STREAK_KEY) ?? '0') || 0;
-  } catch {
-    return 0;
-  }
-}
-function loadBestStreak(): number {
-  try {
-    return Number(localStorage.getItem(`${STREAK_KEY}:best`) ?? '0') || 0;
-  } catch {
-    return 0;
-  }
-}
-function saveStreak(current: number): void {
-  try {
-    localStorage.setItem(STREAK_KEY, String(current));
-    const best = Math.max(loadBestStreak(), current);
-    localStorage.setItem(`${STREAK_KEY}:best`, String(best));
-  } catch {
-    /* storage blocked */
-  }
-}

@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ActionButton';
 /**
  * Bots page — opponent selection + the bot game screen.
  *
@@ -16,6 +17,7 @@ import { MoveList } from '../components/MoveList';
 import { useToast } from '../components/Toast';
 import { BOTS, BotStyle, botById } from '../engine/bots';
 import { engineClient } from '../game/engineClient';
+import { useJobScope } from '../game/jobScope';
 import { useGameController, useControllerVersion, useOrientation, useHotkeys } from '../game/hooks';
 import { useRegisterCommands } from '../game/commands';
 import type { GameController } from '../game/GameController';
@@ -23,9 +25,9 @@ import { accuracyFromLoss, endReasonText, performanceRating } from '../game/anal
 import { BLACK, ChessVariant, Color, WHITE } from '../chess/constants';
 import { endSoundFor, moveSoundName, sound } from '../audio/sound';
 import { useSettings } from '../storage/settings';
-import { gamesRepo, StoredGame } from '../storage/db';
+import { gamesRepo, StoredGame, dataRevision } from '../storage/db';
 import { exportPgn } from '../chess/pgn';
-import { formatNodes, uid } from '../utils';
+import { formatNodes, uid, copyText } from '../utils';
 import { IconDraw, IconFlag, IconFlip, IconList, IconUndo, IconBolt } from '../components/icons';
 
 type Stage = { kind: 'select' } | { kind: 'game'; bot: BotStyle; playerColor: Color; variant: ChessVariant };
@@ -47,14 +49,7 @@ export function BotsPage() {
                 run: () => setGameKey((k) => k + 1),
               },
             ]
-          : [
-              {
-                id: 'bot-new-game',
-                label: 'New Game',
-                group: 'Game',
-                run: () => setStage({ kind: 'select' }),
-              },
-            ],
+          : [],
       [stage.kind],
     ),
   );
@@ -87,7 +82,6 @@ export function BotsPage() {
   );
 }
 
-// ---------------------------------------------------------------- select
 
 const VARIANTS: { id: ChessVariant; label: string; blurb: string }[] = [
   { id: 'standard', label: 'STANDARD', blurb: 'Classical rules.' },
@@ -108,7 +102,6 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color, variant
     const actualColor: Color =
       color === 'random' ? (Math.random() < 0.5 ? WHITE : BLACK) : color === 'white' ? WHITE : BLACK;
     sound.unlock();
-    sound.play('gameStart');
     onStart(chosen, actualColor, variant);
   };
 
@@ -126,12 +119,11 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color, variant
       </div>
 
       <div className="bot-setup">
-        <div className="roster" role="list" aria-label="Bot opponents">
+        <div className="roster" role="group" aria-label="Bot opponents">
           {BOTS.map((bot) => (
             <button
               key={bot.id}
               className="roster-row"
-              role="listitem"
               aria-pressed={selected === bot.id}
               onClick={() => {
                 // First tap selects; a tap on the selected row opens the match box
@@ -210,7 +202,6 @@ function BotSelect({ onStart }: { onStart: (bot: BotStyle, color: Color, variant
   );
 }
 
-// ---------------------------------------------------------------- game
 
 interface BotGameProps {
   bot: BotStyle;
@@ -238,6 +229,7 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
   const [thinking, setThinking] = useState(false);
   const [engineInfo, setEngineInfo] = useState<{ depth: number; nodes: number; ms: number } | null>(null);
   const [moveListOpen, setMoveListOpen] = useState(true);
+  useRegisterCommands([{ id: 'board-moves', label: 'Toggle Move List', group: 'Game', hint: 'M', run: () => setMoveListOpen((value) => !value) }]);
   const [animate, setAnimate] = useState<BoardAnimate | null>(null);
   const [savedGameId, setSavedGameId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<{ accuracy: number; performance: number } | null>(null);
@@ -245,7 +237,13 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
   const [showGameOver, setShowGameOver] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const gameIdRef = useRef(uid());
-  const startedRef = useRef(false);
+  const scope = useJobScope();
+  const revision = useRef(dataRevision());
+  const preferences = useRef(settings); preferences.current = settings;
+  const searchAbort = useRef<AbortController | null>(null);
+  const drawAbort = useRef<AbortController | null>(null);
+  const [engineError, setEngineError] = useState(false);
+  const [analysisStatus, setAnalysisStatus] = useState<'pending' | 'ready' | 'empty' | 'unavailable'>('pending');
   const busyRef = useRef(false);
 
   const finished = controller.phase === 'ended';
@@ -260,138 +258,75 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
     window.scrollTo(0, 0);
   }, []);
 
-  // --- bot turn driver ---------------------------------------------------
-  const requestBotMove = useCallback(
-    async (ctrl: GameController) => {
-      if (ctrl.phase !== 'playing' || busyRef.current) return;
-      busyRef.current = true;
-      setThinking(true);
-      setEngineInfo(null);
-      try {
-        const reply = await engineClient.search({
-          gameId: gameIdRef.current,
-          startFen: ctrl.position.startFen,
-          moves: ctrl.moves.map((m) => m.uci),
-          style: bot,
-          variant: variant === 'standard' ? undefined : variant,
-          onProgress: (p) => setEngineInfo({ depth: p.depth, nodes: p.nodes, ms: p.ms }),
-        });
-        if (reply.uci === null || ctrl.phase !== 'playing') {
-          setThinking(false);
-          busyRef.current = false;
-          return;
-        }
-        // Animation info + apply.
-        const enc = ctrl.position.uciToMove(reply.uci!);
-        if (enc !== null) {
-          const from = enc & 0x7f;
-          const to = (enc >> 7) & 0x7f;
-          const captured = ctrl.position.pieceAt(to);
-          setSettingsAnimate(
-            setAnimate,
-            settings.animateMoves,
-            { from, to, capturedPiece: captured, capturedSquare: to, promoted: reply.uci!.length === 5 },
-          );
-        }
-        const record = ctrl.applyUci(reply.uci!);
-        if (record) {
-          sound.play(moveSoundName(record));
-          setEngineInfo({ depth: reply.depth, nodes: reply.nodes, ms: reply.ms });
-        }
-      } catch {
-        toast('The engine hiccuped — try again.', 'danger');
-      } finally {
-        setThinking(false);
-        busyRef.current = false;
-      }
-    },
-    [bot, settings.animateMoves, toast],
-  );
-
-  // Start bot move on mount / when it's bot's turn and game not finished.
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    engineClient.newGame(gameIdRef.current);
-    if (controller.turn !== playerColor && controller.phase === 'playing') {
-      void requestBotMove(controller);
+  const requestBotMove = useCallback(async (ctrl: GameController) => {
+    if (!scope.active || revision.current !== dataRevision() || ctrl.phase !== 'playing' || ctrl.turn === playerColor || busyRef.current) return;
+    const abort = scope.request(), version = ctrl.getVersion(); searchAbort.current = abort;
+    busyRef.current = true; setThinking(true); setEngineError(false); setEngineInfo(null);
+    const live = () => scope.active && !abort.signal.aborted && revision.current === dataRevision() && ctrl.getVersion() === version && ctrl.phase === 'playing';
+    try {
+      const reply = await engineClient.search({ gameId: gameIdRef.current, startFen: ctrl.position.startFen,
+        moves: ctrl.moves.map((move) => move.uci), style: bot, variant: variant === 'standard' ? undefined : variant,
+        signal: abort.signal, onProgress: (progress) => { if (live()) setEngineInfo(progress); } });
+      if (!live()) return;
+      if (!reply.uci) throw new Error('No legal reply');
+      const encoded = ctrl.position.uciToMove(reply.uci);
+      if (encoded === null) throw new Error('Illegal engine reply');
+      const from = encoded & 0x7f, to = (encoded >> 7) & 0x7f, captured = ctrl.position.pieceAt(to);
+      const record = ctrl.applyUci(reply.uci);
+      if (!record) throw new Error('Engine reply could not be applied');
+      setSettingsAnimate(setAnimate, preferences.current.animateMoves, { from, to, capturedPiece: captured, capturedSquare: to, promoted: reply.uci.length === 5 });
+      sound.play(moveSoundName(record)); setEngineInfo({ depth: reply.depth, nodes: reply.nodes, ms: reply.ms });
+    } catch {
+      if (live()) { setEngineError(true); toast('The engine could not move. Retry when ready.', 'danger'); }
+    } finally {
+      scope.release(abort);
+      if (scope.active && searchAbort.current === abort) { setThinking(false); busyRef.current = false; }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Announce game end + save + analyze.
+  }, [bot, playerColor, scope, toast, variant]);
   useEffect(() => {
-    if (!finished || savedGameId) return;
+    busyRef.current = false;
+    engineClient.newGame(gameIdRef.current);
+    if (controller.turn !== playerColor && controller.phase === 'playing') void requestBotMove(controller);
+  }, [controller, playerColor, requestBotMove]);
+
+  useEffect(() => {
+    if (!finished || savedGameId || revision.current !== dataRevision()) return;
     sound.play(endSoundFor(controller.end, playerColor === WHITE ? 'white' : 'black'));
-    const id = uid();
-    setSavedGameId(id);
-    const timer = window.setTimeout(() => setShowGameOver(true), 650);
-
-    const game: StoredGame = {
-      id,
-      mode: 'bot',
-      date: Date.now(),
-      whiteName: config.whiteName,
-      blackName: config.blackName,
-      variant,
-      botId: bot.id,
-      botElo: bot.elo,
-      startFen: controller.position.startFen,
-      moves: controller.moves,
-      outcome:
-        controller.end?.winner === 'white'
-          ? { result: 'white' }
-          : controller.end?.winner === 'black'
-            ? { result: 'black' }
-            : { result: 'draw', reason: (controller.end?.reason as 'stalemate' | 'agreement' | 'threefold' | 'fifty-move' | 'insufficient') ?? 'agreement' },
-      durationMs: controller.durationMs,
-    };
-    void gamesRepo.save(game);
-
-    // Post-game accuracy analysis (player moves only).
+    const id = uid(); setSavedGameId(id);
+    const cancelReveal = scope.later(() => setShowGameOver(true), 650), abort = scope.request();
+    const game: StoredGame = { id, mode: 'bot', date: Date.now(), whiteName: config.whiteName, blackName: config.blackName,
+      variant, botId: bot.id, botElo: bot.elo, startFen: controller.position.startFen,
+      moves: controller.moves.map((move) => ({ ...move })), outcome: controller.end?.winner === 'white' ? { result: 'white' }
+        : controller.end?.winner === 'black' ? { result: 'black' } : { result: 'draw', reason: (controller.end?.reason as 'stalemate' | 'agreement' | 'threefold' | 'fifty-move' | 'insufficient') ?? 'agreement' },
+      durationMs: controller.durationMs };
+    void gamesRepo.save(game, revision.current);
     void (async () => {
       try {
-        const playerPlies: number[] = [];
-        controller.moves.forEach((_, i) => {
-          const moverIsWhite = i % 2 === 0;
-          if ((playerColor === WHITE) === moverIsWhite) playerPlies.push(i);
-        });
-        if (playerPlies.length === 0) return;
-        const { losses } = await engineClient.analyzeGame(
-          {
-            startFen: controller.position.startFen,
-            moves: controller.moves.map((m) => m.uci),
-            depth: 6,
-            variant: variant === 'standard' ? undefined : variant,
-          },
-          undefined,
-        );
-        const playerLosses = playerPlies.map((i) => losses[i] ?? 0);
-        const avgLoss = playerLosses.reduce((a, b) => a + b, 0) / playerLosses.length;
-        const accuracy = accuracyFromLoss(avgLoss);
-        const performance = performanceRating(avgLoss);
-        setAnalysis({ accuracy, performance });
-        void gamesRepo.save({ ...game, analysis: {
-          whiteLossCp: playerColor === WHITE ? avgLoss : 0,
-          blackLossCp: playerColor === BLACK ? avgLoss : 0,
-          whiteAccuracy: playerColor === WHITE ? accuracy : 100,
-          blackAccuracy: playerColor === BLACK ? accuracy : 100,
-          performance,
-          analyzedAt: Date.now(),
-        } });
-      } catch {
-        /* analysis is best-effort */
-      }
+        const firstWhite = game.startFen.split(/\s+/)[1] === 'w';
+        const playerPlies = game.moves.flatMap((_, index) => ((index % 2 === 0) === firstWhite) === (playerColor === WHITE) ? [index] : []);
+        if (!playerPlies.length) { if (scope.active) setAnalysisStatus('empty'); return; }
+        const { losses } = await engineClient.analyzeGame({ startFen: game.startFen, moves: game.moves.map((move) => move.uci), depth: 6,
+          variant: variant === 'standard' ? undefined : variant, signal: abort.signal });
+        if (!scope.active || abort.signal.aborted || revision.current !== dataRevision()) return;
+        if (losses.length !== game.moves.length) throw new Error('Incomplete analysis');
+        const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+        const playerLoss = average(playerPlies.map((index) => losses[index]!));
+        const accuracy = accuracyFromLoss(playerLoss), performance = performanceRating(playerLoss);
+        const white = losses.filter((_, index) => (index % 2 === 0) === firstWhite), black = losses.filter((_, index) => (index % 2 === 0) !== firstWhite);
+        setAnalysis({ accuracy, performance }); setAnalysisStatus('ready');
+        await gamesRepo.save({ ...game, analysis: { analyzedAt: Date.now(), performance,
+          ...(white.length ? { whiteLossCp: average(white), whiteAccuracy: accuracyFromLoss(average(white)) } : {}),
+          ...(black.length ? { blackLossCp: average(black), blackAccuracy: accuracyFromLoss(average(black)) } : {}) } }, revision.current);
+      } catch { if (scope.active && !abort.signal.aborted) setAnalysisStatus('unavailable'); }
+      finally { scope.release(abort); }
     })();
-
-    return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelReveal(); abort.abort(); };
   }, [finished]);
 
   // --- interactions -------------------------------------------------------
   const onBoardMove = useCallback(
     (from: number, to: number, promo: 1 | 2 | 3 | 4 | 5 | 6 | null): boolean => {
-      if (controller.phase !== 'playing' || controller.turn !== playerColor || thinking) return false;
+      if (controller.phase !== 'playing' || controller.turn !== playerColor || thinking || drawPending || busyRef.current) return false;
       const captured = controller.position.pieceAt(to);
       const ok = controller.tryMove(from, to, promo);
       if (!ok) return false;
@@ -402,11 +337,11 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
       if (!controller.end) void requestBotMove(controller);
       return true;
     },
-    [controller, playerColor, thinking, requestBotMove, settings.animateMoves],
+    [controller, playerColor, thinking, drawPending, requestBotMove, settings.animateMoves],
   );
 
   const undo = () => {
-    if (thinking || controller.phase === 'playing' && controller.turn !== playerColor) return;
+    if (finished || thinking || drawPending || controller.turn !== playerColor) return;
     // Undo the bot's reply + the player's move (2 plies), or fewer at start.
     const plies = controller.moves.length >= 2 ? 2 : 1;
     if (controller.undoPlies(plies)) {
@@ -420,29 +355,21 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
 
   const offerDraw = async () => {
     if (controller.phase !== 'playing' || drawPending || thinking) return;
-    setDrawPending(true);
+    const abort = scope.request(), version = controller.getVersion(); drawAbort.current = abort; setDrawPending(true);
+    const live = () => scope.active && !abort.signal.aborted && controller.phase === 'playing' && controller.getVersion() === version;
     try {
-      const decision = await engineClient.evalDraw({
-        startFen: controller.position.startFen,
-        moves: controller.moves.map((m) => m.uci),
-        botId: bot.id,
-        variant: variant === 'standard' ? undefined : variant,
-      });
-      if (decision.accept) {
-        controller.drawByAgreement();
-        toast(`${bot.name} accepts the draw.`, 'success');
-      } else {
-        toast(`${bot.name} declines — the machine smells blood.`, 'default');
-      }
-    } catch {
-      toast('Could not evaluate the offer.', 'danger');
-    } finally {
-      setDrawPending(false);
-    }
+      const decision = await engineClient.evalDraw({ startFen: controller.position.startFen, moves: controller.moves.map((move) => move.uci),
+        botId: bot.id, variant: variant === 'standard' ? undefined : variant, signal: abort.signal });
+      if (!live()) return;
+      if (decision.accept) { controller.drawByAgreement(); toast(`${bot.name} accepts the draw.`, 'success'); }
+      else toast(`${bot.name} declines the draw.`);
+    } catch { if (live()) toast('Could not evaluate the offer.', 'danger'); }
+    finally { scope.release(abort); if (scope.active && drawAbort.current === abort) setDrawPending(false); }
   };
 
   const resign = () => {
     if (controller.phase !== 'playing') return;
+    searchAbort.current?.abort(); drawAbort.current?.abort();
     controller.resign(playerColor);
   };
 
@@ -465,7 +392,7 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
   }, [onNewGame]);
 
   // Board wiring.
-  const interactive = controller.phase === 'playing' && controller.turn === playerColor && !thinking;
+  const interactive = controller.phase === 'playing' && controller.turn === playerColor && !thinking && !drawPending;
   const legalFor = useCallback(
     (sq: number) => (interactive ? controller.movesFrom(sq) : []),
     [controller, interactive, version],
@@ -496,8 +423,8 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
       controller.end?.winner === 'white' ? '1-0' : controller.end?.winner === 'black' ? '0-1' : '1/2-1/2',
     );
     try {
-      await navigator.clipboard.writeText(pgn);
-      toast('PGN copied to clipboard.', 'success');
+      const ok = await copyText(pgn);
+      toast(ok ? 'PGN copied.' : 'Could not copy PGN.', ok ? 'success' : 'danger');
     } catch {
       toast('Could not copy PGN.', 'danger');
     }
@@ -546,7 +473,7 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
             Moves
             <span className="faint tiny mono">{Math.ceil(controller.moves.length / 2)}</span>
           </div>
-          <MoveList sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
+          <MoveList startFen={controller.position.startFen} sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
         </div>
       </div>
 
@@ -589,22 +516,26 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
         </div>
 
         <div className="row">
-          <button className="btn btn-sm" onClick={undo} disabled={controller.moves.length === 0 || thinking || (!finished && controller.turn !== playerColor)}>
+          <ActionButton className="btn btn-sm" onClick={undo} blockedReason={finished ? 'Finished games cannot be undone. Start a new game to play again.' : drawPending ? 'Wait for the reply to your draw offer before undoing.' : thinking ? `${bot.name} is calculating. Wait for the move before undoing.` : controller.turn !== playerColor ? engineError ? 'Retry the engine move before using Undo.' : 'Undo is available on your turn. Wait for the opponent to move.' : controller.moves.length === 0 && 'There are no moves to undo yet. Play a move first.'}>
             <IconUndo size={14} /> UNDO
-          </button>
-          <button className="btn btn-sm" onClick={() => void offerDraw()} disabled={finished || thinking || drawPending}>
+          </ActionButton>
+          <ActionButton className="btn btn-sm" onClick={() => void offerDraw()} blockedReason={finished ? 'This game has already ended. Start a new game to play again.' : drawPending ? 'Your draw offer is being evaluated. Wait for the reply.' : thinking && `${bot.name} is calculating. Wait for the move before offering a draw.`}>
             <IconDraw size={14} /> {drawPending ? 'OFFERING…' : 'OFFER DRAW'}
-          </button>
-          <button className="btn btn-sm btn-danger" onClick={resign} disabled={finished}>
+          </ActionButton>
+          <ActionButton className="btn btn-sm btn-danger" onClick={resign} blockedReason={finished && 'This game has already ended. There is no active game to resign.'}>
             <IconFlag size={14} /> RESIGN
-          </button>
+          </ActionButton>
           <button className="btn btn-sm" onClick={onNewGame}><IconBolt size={14} /> NEW GAME</button>
           <button className="btn btn-sm btn-ghost" onClick={onExit}>EXIT</button>
+          {finished && !showGameOver && <button className="btn btn-sm" onClick={() => setShowGameOver(true)}>RESULT</button>}
           {finished && <button className="btn btn-sm" onClick={() => void copyPgn()}>COPY PGN</button>}
         </div>
 
+        {engineClient.workerFailed && <p className="small muted" role="status">Worker unavailable. The engine uses a shorter local search.</p>}
+        {engineError && !finished && <div className="panel panel-pad row spread" role="alert"><span>Engine move unavailable.</span><ActionButton className="btn btn-sm" blockedReason={thinking && 'An engine move is already being calculated. Wait for it to finish.'} onClick={() => void requestBotMove(controller)}>RETRY MOVE</ActionButton></div>}
         {showGameOver && (
           <GameOver
+            onClose={() => setShowGameOver(false)}
             winner={controller.end?.winner ?? null}
             outcome={resultForStats}
             reason={endReasonText(controller.end?.reason)}
@@ -629,7 +560,7 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
                 : []),
             ]}
           >
-            {analysis ? null : <div className="tiny faint">Analyzing your moves…</div>}
+            {analysisStatus !== 'ready' && <div className="tiny faint" role="status">{analysisStatus === 'pending' ? 'Analyzing your moves…' : analysisStatus === 'empty' ? 'No player moves to analyze.' : 'Analysis unavailable. The game is saved for replay.'}</div>}
             <button className="btn btn-primary" onClick={onNewGame}>PLAY AGAIN</button>
             {controller.moves.length > 0 && (
               <button className="btn" onClick={() => setReviewOpen(true)}>AUTO-REVIEW</button>
@@ -661,7 +592,7 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
             Moves
             <span className="faint tiny mono">{Math.ceil(controller.moves.length / 2)}</span>
           </div>
-          <MoveList sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
+          <MoveList startFen={controller.position.startFen} sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
         </div>
         {analysis && !showGameOver && (
           <div className="panel panel-pad stack gap-8">
@@ -676,7 +607,6 @@ function BotGame({ bot, playerColor, variant, onNewGame, onExit }: BotGameProps)
   );
 }
 
-// ---------------------------------------------------------------- helpers
 
 function setSettingsAnimate(
   setter: React.Dispatch<React.SetStateAction<BoardAnimate | null>>,

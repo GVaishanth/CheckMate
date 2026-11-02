@@ -28,7 +28,7 @@ export const ELO_ROUNDS: EloRound[] = (raw as EloTestData).rounds;
 
 export const CATEGORY_META: Record<EloCategory, { label: string; weight: number; desc: string }> = {
   tactics: { label: 'Tactics', weight: 0.2, desc: 'spotting the decisive shot' },
-  calculation: { label: 'Calculation', weight: 0.2, desc: 'forcing lines to the end' },
+  calculation: { label: 'Calculation', weight: 0.2, desc: 'finding the key to forced mates' },
   endgame: { label: 'Endgame', weight: 0.17, desc: 'converting an advantage' },
   consistency: { label: 'Consistency', weight: 0.13, desc: 'avoiding unforced errors' },
 };

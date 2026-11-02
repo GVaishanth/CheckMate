@@ -1,9 +1,6 @@
-/* ============================================================
-   Pages: nav, title screen, roster, HUD, puzzles, elo, history,
-   multiplayer, palette, settings
-   ============================================================ */
 
-/* ------------------------------------------------- nav */
+
+
 
 .nav {
   position: sticky;
@@ -136,7 +133,7 @@
 
 .skip-link:focus { left: 8px; top: 8px; }
 
-/* ------------------------------------------------- footer */
+
 
 .footer {
   border-top: 1px solid var(--line);
@@ -151,7 +148,7 @@
   flex-wrap: wrap;
 }
 
-/* ------------------------------------------------- title screen (home) */
+
 
 .title-screen {
   position: relative;
@@ -303,7 +300,7 @@
   letter-spacing: 0.04em;
 }
 
-/* ------------------------------------------------- roster (opponent ladder) */
+
 
 .roster {
   border-top: 1px solid var(--line);
@@ -432,7 +429,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   .roster-row { grid-template-columns: 40px minmax(0, 1fr) auto; padding: var(--sp-3) var(--sp-1); }
 }
 
-/* ------------------------------------------------- record */
+
 
 .record-row {
   display: grid;
@@ -462,13 +459,13 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   margin-top: 2px;
 }
 
-/* ------------------------------------------------- bots page */
+
 
 .bot-setup {
   max-width: 780px;
 }
 
-/* ------------------------------------------------- game HUD */
+
 
 .player-card {
   display: flex;
@@ -585,7 +582,11 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   color: var(--text-3);
 }
 
+.movelist-row > [role="cell"] { min-width: 0; }
+
 .movelist-move {
+  display: block;
+  width: 100%;
   animation: move-in 180ms var(--ease) both;
   font-family: var(--font-mono);
   font-size: 12px;
@@ -597,7 +598,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
 }
 
-.movelist-move:hover:not(:disabled) { background: var(--bg-2); color: var(--text-1); }
+button.movelist-move:hover:not(:disabled) { background: var(--bg-2); color: var(--text-1); }
 
 .movelist-move.active {
   background: var(--accent-soft);
@@ -612,7 +613,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   text-align: center;
 }
 
-/* ------------------------------------------------- game over */
+
 
 .gameover-scrim {
   position: absolute;
@@ -638,7 +639,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   .gameover { margin: auto; max-width: min(460px, 92vw); }
 }
 
-/* ------------------------------------------------- annotator review */
+
 
 .review-scrim {
   position: fixed;
@@ -869,7 +870,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   gap: var(--sp-2);
 }
 
-/* ------------------------------------------------- puzzles */
+
 
 .puzzle-layout {
   display: grid;
@@ -935,7 +936,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   .puzzle-layout { grid-template-columns: 1fr; }
 }
 
-/* ------------------------------------------------- elo */
+
 
 .elo-progress {
   display: flex;
@@ -970,7 +971,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   margin: 0 auto;
 }
 
-/* ------------------------------------------------- history */
+
 
 .history-list {
   border: 1px solid var(--line);
@@ -1012,7 +1013,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
   justify-content: center;
 }
 
-/* ------------------------------------------------- multiplayer */
+
 
 .mp-choices {
   display: grid;
@@ -1110,7 +1111,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
 
 .conn-banner.danger { border-left-color: var(--danger); }
 
-/* ------------------------------------------------- command palette */
+
 
 .palette-scrim {
   position: fixed;
@@ -1182,7 +1183,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
 
 .palette-empty { padding: 20px; text-align: center; color: var(--text-3); font-size: 12.5px; }
 
-/* ------------------------------------------------- settings */
+
 
 .settings-section { margin-bottom: var(--sp-5); }
 .settings-section:last-child { margin-bottom: 0; }
@@ -1222,7 +1223,7 @@ button.roster-row[aria-pressed='true'] .roster-cta.on { opacity: 1; }
 .theme-swatch.fog::before { background: #d8dee6; }
 .theme-swatch.fog::after { background: #96a2b2; }
 
-/* ------------------------------------------------- boot splash (index.html) */
+
 
 .boot {
   position: fixed;

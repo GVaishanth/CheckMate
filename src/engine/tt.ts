@@ -10,7 +10,7 @@ export const TT_ALPHA = 1; // upper bound (fail-low)
 export const TT_BETA = 2; // lower bound (fail-high)
 
 export class TranspositionTable {
-  private keyHi = new Int32Array(ENTRIES);
+  private keyHi = new Uint32Array(ENTRIES);
   private score = new Int32Array(ENTRIES);
   private move = new Int32Array(ENTRIES);
   private depth = new Uint8Array(ENTRIES);
@@ -18,6 +18,7 @@ export class TranspositionTable {
   private used = 0;
 
   probe(lo: number, hi: number): { score: number; move: number; depth: number; flag: number } | null {
+    hi >>>= 0;
     const idx = lo & MASK;
     if (this.keyHi[idx] !== hi) return null;
     if (this.keyHi[idx] === 0 && this.score[idx] === 0 && this.move[idx] === 0 && this.depth[idx] === 0) return null;
@@ -25,6 +26,7 @@ export class TranspositionTable {
   }
 
   store(lo: number, hi: number, depth: number, score: number, flag: number, move: number): void {
+    hi >>>= 0;
     const idx = lo & MASK;
     if (this.keyHi[idx] !== hi) {
       if (this.depth[idx] === 0) this.used++;

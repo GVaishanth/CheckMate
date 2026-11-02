@@ -4,6 +4,7 @@ import { Board, BoardAnimate, Orientation } from '../../components/Board';
 import { CapturedPieces } from '../../components/CapturedPieces';
 import { MoveList } from '../../components/MoveList';
 import { GameController } from '../../game/GameController';
+import { useRegisterCommands } from '../../game/commands';
 import { useHotkeys } from '../../game/hooks';
 import { BLACK, PieceType, WHITE } from '../../chess/constants';
 import { useSettings } from '../../storage/settings';
@@ -28,6 +29,7 @@ interface DuelChromeProps {
 export function DuelChrome(p: DuelChromeProps) {
   const { settings } = useSettings();
   const [moveListOpen, setMoveListOpen] = useState(true);
+  useRegisterCommands([{ id: 'board-moves', label: 'Toggle Move List', group: 'Game', hint: 'M', run: () => setMoveListOpen((value) => !value) }]);
   const { controller, version } = p;
 
   useHotkeys(
@@ -44,7 +46,6 @@ export function DuelChrome(p: DuelChromeProps) {
 
   const legalFor = useCallback(
     (sq: number) => (p.interactive ? controller.movesFrom(sq) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [controller, p.interactive, version],
   );
   const selectable = useCallback(
@@ -53,7 +54,6 @@ export function DuelChrome(p: DuelChromeProps) {
       const piece = controller.position.pieceAt(sq);
       return piece !== 0 && (piece >> 3) === (controller.turn === WHITE ? 0 : 1);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [controller, p.interactive, version],
   );
 
@@ -76,7 +76,7 @@ export function DuelChrome(p: DuelChromeProps) {
         {p.orientation === 'white' ? card(controller.config.blackName, 'black') : card(controller.config.whiteName, 'white')}
         <div className="panel panel-mobile">
           <div className="panel-title">Moves</div>
-          <MoveList sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
+          <MoveList startFen={controller.position.startFen} sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export function DuelChrome(p: DuelChromeProps) {
         {p.orientation === 'white' ? card(controller.config.whiteName, 'white') : card(controller.config.blackName, 'black')}
         <div className="panel">
           <div className="panel-title">Moves</div>
-          <MoveList sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
+          <MoveList startFen={controller.position.startFen} sans={controller.moves.map((m) => m.san)} collapsed={!moveListOpen} />
         </div>
       </div>
     </div>

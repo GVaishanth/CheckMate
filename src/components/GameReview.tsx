@@ -5,6 +5,8 @@
  * accuracy summary at the end. Rendered as an overlay above the board.
  */
 import { useEffect, useRef, useState } from 'react';
+import { ActionButton } from './ActionButton';
+import { ToastHost } from './Toast';
 import { createPortal } from 'react-dom';
 import { Board, BoardAnimate, Orientation } from './Board';
 import { IconClose, IconQuill } from './icons';
@@ -13,6 +15,7 @@ import { useHotkeys, useReviewController } from '../game/hooks';
 
 import { buildAnnotations, summarizeReview, PlyAnnotation, REVIEWER, ReviewSummary } from '../game/review';
 import { moveSoundName, sound } from '../audio/sound';
+import { useDialogFocus } from './useDialogFocus';
 import { useSettings } from '../storage/settings';
 
 export interface GameReviewProps {
@@ -31,6 +34,8 @@ const sqOf = (alg: string): number => alg.charCodeAt(0) - 97 + (Number(alg[1]) -
 
 export function GameReview(p: GameReviewProps) {
   const { settings } = useSettings();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(panelRef, p.onExit);
   const [phase, setPhase] = useState<'analyzing' | 'replay' | 'summary'>('analyzing');
   const [annotations, setAnnotations] = useState<PlyAnnotation[] | null>(null);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
@@ -52,9 +57,12 @@ export function GameReview(p: GameReviewProps) {
 
   // Score every ply in the worker, then build the annotations.
   const movesRef = useRef(p.moves);
+  movesRef.current = p.moves;
   const movesKey = p.moves.map((m) => m.uci).join(' ');
   useEffect(() => {
     let alive = true;
+    const abort = new AbortController();
+    setAnnotations(null); setSummary(null); setPhase('analyzing');
     if (movesRef.current.length === 0) {
       setPhase('replay');
       return;
@@ -66,6 +74,7 @@ export function GameReview(p: GameReviewProps) {
             startFen: p.startFen,
             moves: movesRef.current.map((m) => m.uci),
             depth: 6,
+            signal: abort.signal,
             variant: p.variant && p.variant !== 'standard' ? p.variant : undefined,
           },
           (prog) => {
@@ -75,7 +84,7 @@ export function GameReview(p: GameReviewProps) {
         if (!alive) return;
         const ann = buildAnnotations(p.startFen, movesRef.current, losses, bests);
         setAnnotations(ann);
-        setSummary(summarizeReview(ann, losses));
+        setSummary(summarizeReview(ann, losses, p.startFen.split(/\s+/)[1] === 'b' ? 'black' : 'white'));
         setPhase('replay');
         sound.play('notify');
       } catch {
@@ -83,9 +92,9 @@ export function GameReview(p: GameReviewProps) {
       }
     })();
     return () => {
-      alive = false;
+      alive = false; abort.abort();
     };
-  }, [p.startFen, movesKey]);
+  }, [p.startFen, movesKey, p.variant]);
 
   const atEnd = review.ply >= review.totalPlies;
 
@@ -157,6 +166,7 @@ export function GameReview(p: GameReviewProps) {
       },
       escape: () => p.onExit(),
     },
+    panelRef,
   );
 
   const restart = () => {
@@ -170,8 +180,11 @@ export function GameReview(p: GameReviewProps) {
   const orientation: Orientation = p.myColor === 'black' ? 'black' : 'white';
   const lastUci = review.ply > 0 ? p.moves[review.ply - 1]!.uci : null;
   const current = review.ply > 0 ? annotations?.[review.ply - 1] ?? null : null;
-  const moveNo = Math.ceil(review.ply / 2);
-  const moveDot = review.ply % 2 === 1 ? '.' : '…';
+  const root = p.startFen.split(/\s+/);
+  const offset = root[1] === 'b' ? 1 : 0;
+  const moveIndex = Math.max(0, review.ply - 1) + offset;
+  const moveNo = Number(root[5] ?? 1) + Math.floor(moveIndex / 2);
+  const moveDot = moveIndex % 2 === 0 ? '.' : '…';
   const fillPct =
     phase === 'analyzing' && progress.total > 0
       ? Math.round((progress.done / progress.total) * 100)
@@ -180,8 +193,11 @@ export function GameReview(p: GameReviewProps) {
   // Portal to the body: page-level animations leave a transform on ancestors,
   // which would otherwise re-anchor this fixed overlay to the page column.
   return createPortal(
-    <div className={`review-scrim${shown ? ' shown' : ''}`} role="dialog" aria-modal="true" aria-label="Automatic game review">
+    <div ref={panelRef} className={`review-scrim${shown ? ' shown' : ''}`} role="dialog" aria-modal="true" aria-label="Automatic game review">
+      <ToastHost />
       <div className="review">
+        {engineClient.workerFailed && <p className="small muted" role="status">Worker unavailable. Analysis uses a shorter local search.</p>}
+        {phase !== 'analyzing' && !annotations && <p className="small muted" role="status">{p.moves.length ? 'Move analysis is unavailable. You can still replay the game.' : 'No moves were recorded in this game.'}</p>}
         <div className="review-head">
           <div className="annotator-avatar" aria-hidden="true">
             <IconQuill size={22} />
@@ -237,7 +253,7 @@ export function GameReview(p: GameReviewProps) {
                 <>
                   <div className="review-move mono">START</div>
                   <div className="review-comment">
-                    {p.whiteName} vs {p.blackName} — {Math.ceil(review.totalPlies / 2)} moves. I watched the whole thing.
+                    {p.whiteName} vs {p.blackName} — {Math.ceil(review.totalPlies / 2)} moves. Step through the evaluations below.
                   </div>
                 </>
               ) : (
@@ -259,13 +275,13 @@ export function GameReview(p: GameReviewProps) {
             </div>
 
             <div className="row review-controls-row">
-              <button className="btn btn-sm" onClick={() => { setPlaying(false); review.first(); prevPly.current = 0; setAnimate(null); }} aria-label="First move">⏮</button>
-              <button className="btn btn-sm" onClick={() => step(-1)} aria-label="Previous move">◀</button>
-              <button className="btn btn-sm btn-primary" onClick={() => setPlaying((v) => !v)} aria-label={playing ? 'Pause' : 'Play'}>
+              <ActionButton className="btn btn-sm" blockedReason={review.totalPlies === 0 ? 'This game has no recorded moves to replay.' : !playing && review.ply === 0 && 'You are already at the starting position. Press Next to see the first move.'} onClick={() => { setPlaying(false); review.first(); prevPly.current = 0; setAnimate(null); }} aria-label="First move">⏮</ActionButton>
+              <ActionButton className="btn btn-sm" blockedReason={review.totalPlies === 0 ? 'This game has no recorded moves to replay.' : !playing && review.ply === 0 && 'You are at the starting position. There is no previous move.'} onClick={() => step(-1)} aria-label="Previous move">◀</ActionButton>
+              <ActionButton className="btn btn-sm btn-primary" blockedReason={review.totalPlies === 0 ? 'This game has no recorded moves to play.' : !playing && atEnd && 'You have reached the end of this replay. Step back to replay earlier moves.'} onClick={() => setPlaying((v) => !v)} aria-label={playing ? 'Pause' : 'Play'}>
                 {playing ? '⏸' : '▶'}
-              </button>
-              <button className="btn btn-sm" onClick={() => step(1)} aria-label="Next move">▶</button>
-              <button className="btn btn-sm" onClick={() => { setPlaying(false); review.last(); }} aria-label="Skip to end">⏭</button>
+              </ActionButton>
+              <ActionButton className="btn btn-sm" blockedReason={review.totalPlies === 0 ? 'This game has no recorded moves to replay.' : !playing && atEnd && 'You have reached the last recorded move. Choose Previous to review earlier moves.'} onClick={() => step(1)} aria-label="Next move">▶</ActionButton>
+              <ActionButton className="btn btn-sm" blockedReason={review.totalPlies === 0 ? 'This game has no recorded moves to replay.' : !playing && atEnd && 'You are already at the last recorded move.'} onClick={() => { setPlaying(false); review.last(); }} aria-label="Skip to end">⏭</ActionButton>
               <span className="tiny faint">← → step · SPACE pause</span>
             </div>
           </>
@@ -282,7 +298,7 @@ export function GameReview(p: GameReviewProps) {
                     {name}
                     {p.myColor === color && name.toLowerCase() !== 'you' ? <span className="tiny faint"> · YOU</span> : null}
                   </div>
-                  <div className="review-sum-acc mono">{s ? `${s.accuracy}%` : '—'}</div>
+                  <div className="review-sum-acc mono">{s?.accuracy !== null && s?.accuracy !== undefined ? `${s.accuracy}%` : '—'}</div>
                   <div className="review-sum-kinds">
                     {s &&
                       (['best', 'good', 'inaccuracy', 'mistake', 'blunder'] as const).map((k) =>

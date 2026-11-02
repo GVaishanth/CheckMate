@@ -43,20 +43,15 @@ export function moveToSan(pos: Position, move: Move): string {
 
 /** Parses SAN text into the matching legal move, or null. */
 export function sanToMove(pos: Position, sanInput: string): Move | null {
-  let san = sanInput.trim().replace(/[+#!?]+$/g, '').replace(/0-0-0/g, 'O-O-O').replace(/0-0/g, 'O-O');
-  if (!san) return null;
-  const promoMatch = san.match(/=([QRBN])$/);
-  if (promoMatch) san = san.slice(0, -2);
+  const normalize = (s: string) => s.trim()
+    .replace(/\s*e\.p\.\s*$/i, '')
+    .replace(/[+#!?]+$/g, '')
+    .replace(/0/g, 'O')
+    .replace(/([a-h][18])=?([QRBN])$/, '$1=$2');
+  const san = normalize(sanInput);
+  if (!san || san.length > 24) return null;
   for (const m of pos.getLegalMoves()) {
-    const candidate = moveToSan(pos, m).replace(/[+#]+$/g, '');
-    if (candidate === san || candidate === sanInput.trim()) return m;
-  }
-  // Tolerate "exd5 e.p." style or missing '=' on promotions.
-  if (promoMatch) {
-    for (const m of pos.getLegalMoves()) {
-      const candidate = moveToSan(pos, m).replace(/[+#]+$/g, '').replace(/=[QRBN]$/, promoMatch[1]!);
-      if (candidate === san) return m;
-    }
+    if (normalize(moveToSan(pos, m)) === san) return m;
   }
   return null;
 }

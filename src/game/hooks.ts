@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { GameController } from './GameController';
 import { Position } from '../chess/position';
+import { useRegisterCommands } from './commands';
 
 export function useGameController(config: {
   whiteName: string;
@@ -12,7 +13,6 @@ export function useGameController(config: {
   const controller = useMemo(
     () => new GameController(config),
     // Recreate only when the identity token changes — pages pass a stable token.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [config.whiteName, config.blackName, config.startFen, config.variant],
   );
   useSyncExternalStore(controller.subscribe, controller.getVersion, controller.getVersion);
@@ -25,13 +25,17 @@ export function useControllerVersion(controller: GameController): number {
 }
 
 /** Keyboard hotkeys, scoped to non-typing contexts. */
-export function useHotkeys(map: Record<string, (e: KeyboardEvent) => void>): void {
+export function useHotkeys(map: Record<string, (e: KeyboardEvent) => void>, dialogScope?: React.RefObject<HTMLElement>): void {
   const mapRef = useRef(map);
   mapRef.current = map;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      const dialog = t?.closest('[role="dialog"]');
+      if (dialog && dialog !== dialogScope?.current) return;
+      if (t?.closest('button, a, [role="button"]') && (e.key === ' ' || e.key === 'Enter')) return;
       const fn = mapRef.current[e.key.toLowerCase()];
       if (fn) fn(e);
     };
@@ -44,11 +48,13 @@ export function useHotkeys(map: Record<string, (e: KeyboardEvent) => void>): voi
 export function useOrientation(initial: 'white' | 'black', enableHotkey = true): ['white' | 'black', () => void] {
   const [orientation, setOrientation] = useState<'white' | 'black'>(initial);
   const flip = useCallback(() => setOrientation((o) => (o === 'white' ? 'black' : 'white')), []);
+  useRegisterCommands(enableHotkey ? [{ id: 'board-flip', label: 'Flip Board', group: 'Game', hint: 'F', run: flip }] : []);
   useEffect(() => {
     if (!enableHotkey) return undefined;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable || t.closest('[role="dialog"]'))) return;
       if (e.key.toLowerCase() === 'f') {
         e.preventDefault();
         flip();
@@ -108,12 +114,12 @@ export class ReviewController {
       }
     }
     this.position = pos;
-    this.ply = ply;
+    this.ply = pos.moves.length;
     this.emit();
   }
 
   goTo(ply: number): void {
-    const target = Math.max(0, Math.min(this.totalPlies, ply));
+    const target = Number.isFinite(ply) ? Math.max(0, Math.min(this.totalPlies, Math.floor(ply))) : 0;
     if (target !== this.ply) this.rebuild(target);
   }
 
@@ -135,11 +141,12 @@ export class ReviewController {
 }
 
 export function useReviewController(startFen: string, moves: string[], variant?: string): ReviewController {
-  const ref = useRef<ReviewController | null>(null);
-  if (ref.current === null || ref.current.position.startFen !== startFen || ref.current.moves.length !== moves.length) {
-    ref.current = new ReviewController(startFen, moves, variant);
+  const key = `${startFen}\0${variant ?? 'standard'}\0${moves.join(' ')}`;
+  const ref = useRef<{ key: string; review: ReviewController } | null>(null);
+  if (ref.current === null || ref.current.key !== key) {
+    ref.current = { key, review: new ReviewController(startFen, moves, variant) };
   }
-  const review = ref.current;
+  const review = ref.current.review;
   useSyncExternalStore(review.subscribe, review.getVersion, review.getVersion);
   return review;
 }

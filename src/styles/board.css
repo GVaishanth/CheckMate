@@ -1,6 +1,4 @@
-/* ============================================================
-   Chessboard — the heart of the product
-   ============================================================ */
+
 
 .board-wrap {
   position: relative;
@@ -76,10 +74,12 @@
   z-index: 3;
 }
 
+.sq.light .coord { color: var(--coord-light, var(--coord)); }
+
 .coord-file { right: 4px; bottom: 2px; }
 .coord-rank { left: 4px; top: 2px; }
 
-/* ------------------------------------------------- highlights */
+
 
 .sq-overlay {
   position: absolute;
@@ -169,7 +169,7 @@
 
 .sq.hover-drop { box-shadow: inset 0 0 0 3px rgba(210, 168, 80, 0.55); }
 
-/* ------------------------------------------------- pieces */
+
 
 .piece-layer {
   position: absolute;
@@ -192,7 +192,7 @@
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.38));
 }
 
-.piece[aria-disabled='true'] { cursor: default; }
+.piece.idle { cursor: default; pointer-events: none; }
 
 .piece.dragging {
   transition: none;
@@ -272,7 +272,7 @@
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
 }
 
-/* ------------------------------------------------- promotion */
+
 
 .promo-overlay {
   position: absolute;
@@ -333,7 +333,7 @@
 
 .promo-piece svg { width: 78%; height: 78%; }
 
-/* ------------------------------------------------- confirm-move bar */
+
 
 .confirm-bar {
   position: absolute;
@@ -360,7 +360,7 @@
   color: var(--text-1);
 }
 
-/* ------------------------------------------------- status row */
+
 
 .board-status {
   display: flex;
@@ -432,7 +432,7 @@
   background: var(--accent-soft);
 }
 
-/* ------------------------------------------------- game layout */
+
 
 .game-layout {
   display: grid;

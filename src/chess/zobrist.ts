@@ -52,13 +52,13 @@ export const CHECK_KEYS_LO = makeTable(rngLo, 8); // [color 0..1][count 0..3]
 export const CHECK_KEYS_HI = makeTable(rngHi, 8);
 
 export const hashVariant = (h: HashState, v: number): void => {
-  h.lo ^= VARIANT_KEYS_LO[v]!;
-  h.hi ^= VARIANT_KEYS_HI[v]!;
+  h.lo = (h.lo ^ VARIANT_KEYS_LO[v]!) >>> 0;
+  h.hi = (h.hi ^ VARIANT_KEYS_HI[v]!) >>> 0;
 };
 
 export const hashChecks = (h: HashState, color: number, count: number): void => {
-  h.lo ^= CHECK_KEYS_LO[color * 4 + count]!;
-  h.hi ^= CHECK_KEYS_HI[color * 4 + count]!;
+  h.lo = (h.lo ^ CHECK_KEYS_LO[color * 4 + count]!) >>> 0;
+  h.hi = (h.hi ^ CHECK_KEYS_HI[color * 4 + count]!) >>> 0;
 };
 
 export interface HashState {

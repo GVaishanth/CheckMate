@@ -1,39 +1,29 @@
-/**
- * Board — the interactive chessboard.
- *
- * Features: click-to-move, pointer drag & drop (mouse + touch), keyboard
- * cursor navigation, legal-move hints, last-move / check / selection
- * highlights, move + capture animations, promotion picker, orientation flip,
- * themes, coordinates, and screen-reader announcements.
- */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Color, FILES, Move, PAWN, PieceType, RANKS, WHITE, algebraic, colorOf, fileOf, rankOf, typeOf,
 } from '../chess/constants';
 import type { Position } from '../chess/position';
 import { PieceSvg, glyphFor } from './PieceSvg';
 import { sound } from '../audio/sound';
+import { effectiveReducedMotion } from '../storage/settings';
 import type { Settings } from '../storage/settings';
+import { ToastHost } from './Toast';
+import { useDialogFocus } from './useDialogFocus';
 
 export type Orientation = 'white' | 'black';
-
 export interface BoardAnimate {
   from: number;
   to: number;
-  capturedPiece: number; // 0 if no capture
+  capturedPiece: number;
   capturedSquare: number;
-  /** Pawn just promoted — the new piece pops in after the slide. */
   promoted?: boolean;
 }
-
 export interface BoardProps {
   position: Position;
   version: number;
   orientation: Orientation;
   interactive: boolean;
-  /** Can the piece on this square be picked up right now? */
   selectable: (sq: number) => boolean;
-  /** Legal moves from a square (empty when not interactive). */
   legalFor: (sq: number) => Move[];
   onMove: (from: number, to: number, promo: PieceType | null) => boolean;
   onIllegal?: () => void;
@@ -43,499 +33,259 @@ export interface BoardProps {
   settings: Settings;
   label?: string;
 }
-
 interface DragState {
-  from: number;
-  x: number;
-  y: number;
-  moved: boolean;
-  pointerId: number;
+  from: number; x: number; y: number; startX: number; startY: number; moved: boolean; pointerId: number;
 }
+interface PendingMove { from: number; to: number; fen: string; promo: PieceType | null }
+const pieceNames = ['', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
+const pieceLabel = (piece: number, sq: number): string => piece
+  ? `${colorOf(piece) === WHITE ? 'white' : 'black'} ${pieceNames[piece & 7]} on ${algebraic(sq)}`
+  : `${algebraic(sq)}, empty`;
 
-const animDurationMs = 200;
-
-export function Board(props: BoardProps) {
-  const { position, version, orientation, interactive, selectable, legalFor, onMove, onIllegal, lastMove, checkSquare, animate, settings, label } = props;
+export function Board({ position, version, orientation, interactive, selectable, legalFor, onMove, onIllegal, lastMove, checkSquare, animate, settings, label }: BoardProps) {
+  const id = useId();
   const boardRef = useRef<HTMLDivElement>(null);
+  const pointer = useRef<{ element: Element; id: number } | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const previousPieces = useRef(new Map<number, number>());
   const [selected, setSelected] = useState<number | null>(null);
-  const [drag, setDrag] = useState<DragState | null>(null);
+  const [drag, renderDrag] = useState<DragState | null>(null);
+  const setDrag = (value: DragState | null) => { dragRef.current = value; renderDrag(value); };
   const [cursor, setCursor] = useState<number | null>(null);
   const [hoverSq, setHoverSq] = useState<number | null>(null);
-  const [promo, setPromo] = useState<{ from: number; to: number } | null>(null);
-  const [staged, setStaged] = useState<{ from: number; to: number; promo: PieceType | null } | null>(null);
+  const [promo, setPromo] = useState<PendingMove | null>(null);
+  const [staged, setStaged] = useState<PendingMove | null>(null);
   const [animFrom, setAnimFrom] = useState<number | null>(null);
   const [ghost, setGhost] = useState<{ square: number; piece: number } | null>(null);
   const [announce, setAnnounce] = useState('');
   const [shake, setShake] = useState<{ sq: number; n: number } | null>(null);
   const [popSq, setPopSq] = useState<number | null>(null);
   const [pulse, setPulse] = useState(0);
-  const prevCheckRef = useRef<number | null>(null);
-
-  // Reset transient state when the position changes externally.
-  useEffect(() => {
-    setSelected(null);
-    setDrag(null);
-    setPromo(null);
-    setStaged(null);
-    if (animate) {
-      setAnimFrom(animate.from);
-      if (animate.capturedPiece) setGhost({ square: animate.capturedSquare, piece: animate.capturedPiece });
-      const t1 = window.setTimeout(() => setAnimFrom(null), animDurationMs);
-      const t2 = window.setTimeout(() => setGhost(null), animDurationMs);
-      // Promotion: once the pawn arrives, the new piece announces itself.
-      const t3 = animate.promoted ? window.setTimeout(() => setPopSq(animate.to), animDurationMs - 20) : null;
-      const t4 = animate.promoted ? window.setTimeout(() => setPopSq(null), animDurationMs + 400) : null;
-      return () => { for (const t of [t1, t2, t3, t4]) if (t !== null) window.clearTimeout(t); };
-    }
-    return undefined;
-  }, [version, animate]);
-
-  // One-shot pulse each time a *new* check lands on the board.
-  useEffect(() => {
-    if (checkSquare != null && checkSquare !== prevCheckRef.current) setPulse((p) => p + 1);
-    prevCheckRef.current = checkSquare ?? null;
-  }, [checkSquare]);
-
-  // The refusal shake clears itself.
-  useEffect(() => {
-    if (!shake) return undefined;
-    const t = window.setTimeout(() => setShake(null), 280);
-    return () => window.clearTimeout(t);
-  }, [shake]);
-
+  const prevCheck = useRef<number | null>(null);
   const flipped = orientation === 'black';
-
-  /** Square for display coordinates: (col,row) → 0x88 index. */
-  const displayToSquare = useCallback(
-    (col: number, row: number): number => {
-      const file = flipped ? 7 - col : col;
-      const rank = flipped ? row : 7 - row;
-      return (rank << 4) | file;
-    },
-    [flipped],
-  );
-
-  const squareToDisplay = useCallback(
-    (sq: number): { col: number; row: number } => {
-      const f = fileOf(sq);
-      const r = rankOf(sq);
-      return { col: flipped ? 7 - f : f, row: flipped ? r : 7 - r };
-    },
-    [flipped],
-  );
-
-  const pointerToSquare = useCallback(
-    (clientX: number, clientY: number): number | null => {
-      const rect = boardRef.current?.getBoundingClientRect();
-      if (!rect) return null;
-      const x = (clientX - rect.left) / rect.width;
-      const y = (clientY - rect.top) / rect.height;
-      if (x < 0 || x >= 1 || y < 0 || y >= 1) return null;
-      return displayToSquare(Math.floor(x * 8), Math.floor(y * 8));
-    },
-    [displayToSquare],
-  );
-
-  const legalTargets = useMemo(() => {
-    if (selected === null || !interactive) return new Map<number, Move>();
-    const map = new Map<number, Move>();
-    for (const m of legalFor(selected)) map.set(m.to, m);
-    return map;
-  }, [selected, interactive, legalFor, version]);
-
-  /** Invalid action: the piece refuses — a 240ms shake, no buzz, no flash. */
-  const nudge = useCallback((sq: number | null) => {
-    if (sq === null) return;
-    setShake((s) => ({ sq, n: (s?.n ?? 0) + 1 }));
-  }, []);
-
-  // ------------------------------------------------------------- moves
-
-  const isPromotion = (from: number, to: number): boolean => {
-    const piece = position.pieceAt(from);
-    return typeOf(piece) === PAWN && (rankOf(to) === 7 || rankOf(to) === 0);
-  };
-
-  const commitMove = useCallback(
-    (from: number, to: number, promo: PieceType | null) => {
-      if (settings.confirmMoves && !promo) {
-        setStaged({ from, to, promo: null });
-        setSelected(null);
-        return;
-      }
-      const ok = onMove(from, to, promo);
-      if (!ok) {
-        nudge(from);
-        onIllegal?.();
-      }
-      setSelected(null);
-    },
-    [onMove, onIllegal, settings.confirmMoves, nudge],
-  );
-
-  const attemptMove = useCallback(
-    (from: number, to: number) => {
-      if (from === to) return false;
-      const legal = legalFor(from).filter((m) => m.to === to);
-      if (legal.length === 0) return false;
-      if (isPromotion(from, to)) {
-        if (settings.autoQueen) {
-          const ok = onMove(from, to, 5 as PieceType);
-          if (!ok) {
-            nudge(from);
-            onIllegal?.();
-          }
-          setSelected(null);
-          return true;
-        }
-        setPromo({ from, to });
-        return true;
-      }
-      commitMove(from, to, null);
-      return true;
-    },
-    [legalFor, commitMove, onMove, onIllegal, settings.autoQueen, position],
-  );
-
-  // ------------------------------------------------------------- pointer
-
-  /** Shared click-target logic: commit the selected piece toward `target`. */
-  const targetClick = (target: number): boolean => {
-    if (selected !== null && target !== selected) {
-      if (attemptMove(selected, target)) return true;
-      if (selectable(target)) {
-        setSelected(target);
-        return true;
-      }
-      // Not a legal destination — the piece stays selected and refuses.
-      nudge(selected);
-      onIllegal?.();
-      return true;
-    }
-    if (selected === null && selectable(target)) {
-      setSelected(target);
-      return true;
-    }
-    return false;
-  };
-
-  const onPiecePointerDown = (e: React.PointerEvent, sq: number) => {
-    if (!interactive) return;
-    soundUnlock();
-    if (e.button !== undefined && e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation(); // board-level handler must not treat this as a target click
-    if (!selectable(sq)) {
-      // Clicking an enemy piece with one of ours selected = capture attempt.
-      targetClick(sq);
-      return;
-    }
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    setSelected((prev) => (prev === sq ? null : sq));
-    setDrag({ from: sq, x: e.clientX, y: e.clientY, moved: false, pointerId: e.pointerId });
-  };
-
-  /** Click-to-move: pointer down on an empty square commits the selected piece's move. */
-  const onBoardPointerDown = (e: React.PointerEvent) => {
-    if (!interactive || (e.target as HTMLElement).closest('.piece')) return;
-    if (e.button !== undefined && e.button !== 0) return;
-    const target = pointerToSquare(e.clientX, e.clientY);
-    if (target === null) return;
-    soundUnlock();
-    targetClick(target);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!drag) return;
-    setDrag({ ...drag, x: e.clientX, y: e.clientY, moved: true });
-    setHoverSq(pointerToSquare(e.clientX, e.clientY));
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (!drag) return;
-    const target = pointerToSquare(e.clientX, e.clientY);
-    const wasDrag = drag.moved && Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 0;
-    const from = drag.from;
-    setDrag(null);
-    setHoverSq(null);
-    if (!interactive) return;
-    if (target !== null && target !== from) {
-      if (!attemptMove(from, target)) {
-        // Click on another own piece while something is selected reselects.
-        if (selectable(target)) setSelected(target);
-        else {
-          nudge(from);
-          onIllegal?.();
-        }
-      }
-    } else if (wasDrag && target === from) {
-      // Dragged and dropped back — keep selection for click-move.
+  const reducedMotion = effectiveReducedMotion(settings);
+  const releasePointer = () => {
+    if (pointer.current) {
+      try { pointer.current.element.releasePointerCapture(pointer.current.id); } catch { /* capture already ended */ }
+      pointer.current = null;
     }
   };
-
-  // ------------------------------------------------------------- keyboard
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (!interactive && cursor === null) return;
-    const cur = cursor ?? displayToSquare(4, 4);
-    const { col, row } = squareToDisplay(cur);
-    let nextCol = col;
-    let nextRow = row;
-    switch (e.key) {
-      case 'ArrowLeft': nextCol = Math.max(0, col - 1); break;
-      case 'ArrowRight': nextCol = Math.min(7, col + 1); break;
-      case 'ArrowUp': nextRow = Math.max(0, row - 1); break;
-      case 'ArrowDown': nextRow = Math.min(7, row + 1); break;
-      case 'Enter':
-      case ' ': {
-        e.preventDefault();
-        if (selected !== null && cursor !== null && cursor !== selected) {
-          if (!attemptMove(selected, cursor) && selectable(cursor)) setSelected(cursor);
-        } else if (selectable(cur)) {
-          setSelected(cur);
-          setCursor(cur);
-        } else if (selected === cur) {
-          setSelected(null);
-        }
-        return;
-      }
-      case 'Escape':
-        setSelected(null);
-        setPromo(null);
-        setStaged(null);
-        return;
-      default:
-        return;
-    }
-    e.preventDefault();
-    const next = displayToSquare(nextCol, nextRow);
-    setCursor(next);
-    setAnnounce(squareName(next));
+  const cancelDrag = () => { releasePointer(); setDrag(null); setHoverSq(null); };
+  const displayToSquare = useCallback((col: number, row: number) => ((flipped ? row : 7 - row) << 4) | (flipped ? 7 - col : col), [flipped]);
+  const squareToDisplay = (sq: number) => ({ col: flipped ? 7 - fileOf(sq) : fileOf(sq), row: flipped ? rankOf(sq) : 7 - rankOf(sq) });
+  const pointerToSquare = (x: number, y: number): number | null => {
+    const rect = boardRef.current?.getBoundingClientRect();
+    if (!rect || !rect.width || !rect.height) return null;
+    const col = (x - rect.left) / rect.width, row = (y - rect.top) / rect.height;
+    return col < 0 || col >= 1 || row < 0 || row >= 1 ? null : displayToSquare(Math.floor(col * 8), Math.floor(row * 8));
   };
-
-  // ------------------------------------------------------------- render
-
-  const squares = useMemo(() => {
-    const out: Array<{ sq: number; light: boolean; col: number; row: number }> = [];
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const sq = displayToSquare(col, row);
-        out.push({ sq, light: (fileOf(sq) + rankOf(sq)) % 2 === 1, col, row });
-      }
-    }
-    return out;
-  }, [displayToSquare]);
-
   const pieces = useMemo(() => {
-    const out: Array<{ sq: number; piece: number }> = [];
+    const values: Array<{ sq: number; piece: number }> = [];
     for (let sq = 0; sq < 128; sq++) {
       if (sq & 0x88) { sq += 7; continue; }
-      const p = position.pieceAt(sq);
-      if (p) out.push({ sq, piece: p });
+      const piece = position.pieceAt(sq);
+      if (piece) values.push({ sq, piece });
     }
-    return out;
+    return values;
   }, [position, version]);
 
-  const dragRect = boardRef.current?.getBoundingClientRect();
+  useLayoutEffect(() => {
+    const before = previousPieces.current;
+    previousPieces.current = new Map(pieces.map(({ sq, piece }) => [sq, piece]));
+    setSelected(null); setPromo(null); setStaged(null); setHoverSq(null);
+    releasePointer(); setDrag(null); setAnimFrom(null); setGhost(null); setPopSq(null);
+    if (!animate || animate.from === animate.to || !settings.animateMoves || reducedMotion || !before.has(animate.from)) return;
+    setAnimFrom(animate.from);
+    let capturedSquare = animate.capturedSquare;
+    let capturedPiece = before.get(animate.to) ?? 0;
+    const mover = before.get(animate.from)!;
+    if (!capturedPiece && typeOf(mover) === PAWN && fileOf(animate.from) !== fileOf(animate.to)) {
+      capturedSquare = animate.to + (colorOf(mover) === WHITE ? -16 : 16);
+      capturedPiece = before.get(capturedSquare) ?? 0;
+    } else if (capturedPiece) capturedSquare = animate.to;
+    if (capturedPiece) setGhost({ square: capturedSquare, piece: capturedPiece });
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => { secondFrame = requestAnimationFrame(() => setAnimFrom(null)); });
+    const end = window.setTimeout(() => { setGhost(null); if (animate.promoted) setPopSq(animate.to); }, 230);
+    const pop = window.setTimeout(() => setPopSq(null), 630);
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(secondFrame); clearTimeout(end); clearTimeout(pop); };
+  }, [position, version, animate, settings.animateMoves, reducedMotion, pieces]);
+  useLayoutEffect(() => { setSelected(null); setPromo(null); setStaged(null); cancelDrag(); }, [interactive, orientation]);
+  useEffect(() => () => releasePointer(), []);
+  useEffect(() => {
+    if (checkSquare != null && checkSquare !== prevCheck.current) setPulse((p) => p + 1);
+    prevCheck.current = checkSquare ?? null;
+  }, [checkSquare]);
+  useEffect(() => {
+    if (!shake) return;
+    const timer = window.setTimeout(() => setShake(null), 280);
+    return () => clearTimeout(timer);
+  }, [shake]);
+  useEffect(() => {
+    if (lastMove) setAnnounce(`${algebraic(lastMove.from)} to ${algebraic(lastMove.to)}.${checkSquare != null ? ' Check.' : ''} ${position.stm === WHITE ? 'White' : 'Black'} to move.`);
+  }, [version, position, lastMove?.from, lastMove?.to, checkSquare]);
 
-  const pieceStyle = (sq: number, isDragging: boolean, animStartFrom: number | null): React.CSSProperties => {
-    if (isDragging && dragRect) {
-      const size = dragRect.width / 8;
-      return {
-        transform: `translate(${drag!.x - dragRect.left - size / 2}px, ${drag!.y - dragRect.top - size / 2}px) scale(1.12)`,
-        zIndex: 30,
-      };
+  const nudge = (sq: number) => { setShake((state) => ({ sq, n: (state?.n ?? 0) + 1 })); onIllegal?.(); };
+  const legalNow = (move: PendingMove): boolean => interactive && position.fen() === move.fen && selectable(move.from)
+    && legalFor(move.from).some((m) => m.to === move.to && m.promo === move.promo);
+  const execute = (move: PendingMove) => {
+    if (!legalNow(move) || !onMove(move.from, move.to, move.promo)) nudge(move.from);
+    setSelected(null); setStaged(null); setPromo(null);
+  };
+  const commit = (move: PendingMove) => {
+    if (!legalNow(move)) { nudge(move.from); return; }
+    if (settings.confirmMoves) { setStaged(move); setSelected(null); }
+    else execute(move);
+  };
+  const attempt = (from: number, to: number): boolean => {
+    if (!interactive || from === to || !selectable(from)) return false;
+    const moves = legalFor(from).filter((m) => m.to === to);
+    if (!moves.length) return false;
+    const move: PendingMove = { from, to, fen: position.fen(), promo: null };
+    if (moves.some((m) => m.promo !== null)) {
+      if (settings.autoQueen) commit({ ...move, promo: 5 });
+      else setPromo(move);
+    } else commit(move);
+    return true;
+  };
+  const targetClick = (target: number) => {
+    if (!interactive || promo || staged) return;
+    if (selected === target) { setSelected(null); return; }
+    if (selected !== null && attempt(selected, target)) return;
+    if (selectable(target)) setSelected(target);
+    else if (selected !== null) nudge(selected);
+  };
+  const pointerDown = (event: React.PointerEvent, sq?: number) => {
+    if (!interactive || promo || staged || event.button !== 0 || event.isPrimary === false || dragRef.current) return;
+    const target = sq ?? pointerToSquare(event.clientX, event.clientY);
+    if (target === null) return;
+    event.preventDefault(); event.stopPropagation();
+    sound.unlock(); boardRef.current?.focus({ preventScroll: true }); setCursor(target);
+    if (sq === undefined || !selectable(target)) { targetClick(target); return; }
+    const element = event.currentTarget;
+    try { element.setPointerCapture(event.pointerId); pointer.current = { element, id: event.pointerId }; } catch { /* synthetic pointer */ }
+    setSelected((old) => old === target ? null : target);
+    setDrag({ from: target, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false, pointerId: event.pointerId });
+  };
+  const pointerMove = (event: React.PointerEvent) => {
+    const current = dragRef.current;
+    if (!current || event.pointerId !== current.pointerId) return;
+    const moved = current.moved || Math.hypot(event.clientX - current.startX, event.clientY - current.startY) >= 4;
+    setDrag({ ...current, x: event.clientX, y: event.clientY, moved });
+    setHoverSq(pointerToSquare(event.clientX, event.clientY));
+  };
+  const pointerUp = (event: React.PointerEvent) => {
+    const current = dragRef.current;
+    if (!current || event.pointerId !== current.pointerId) return;
+    const target = pointerToSquare(event.clientX, event.clientY);
+    cancelDrag();
+    if (!interactive || !current.moved || target === null || target === current.from) return;
+    if (!attempt(current.from, target)) {
+      if (selectable(target)) setSelected(target); else nudge(current.from);
     }
-    const src = animStartFrom ?? sq;
-    const { col, row } = squareToDisplay(src);
+  };
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.target !== event.currentTarget || !interactive || promo || staged || event.ctrlKey || event.metaKey || event.altKey) return;
+    const current = cursor ?? displayToSquare(0, 0), { col, row } = squareToDisplay(current);
+    let next = current;
+    switch (event.key) {
+      case 'ArrowLeft': next = displayToSquare(Math.max(0, col - 1), row); break;
+      case 'ArrowRight': next = displayToSquare(Math.min(7, col + 1), row); break;
+      case 'ArrowUp': next = displayToSquare(col, Math.max(0, row - 1)); break;
+      case 'ArrowDown': next = displayToSquare(col, Math.min(7, row + 1)); break;
+      case 'Home': next = displayToSquare(0, row); break;
+      case 'End': next = displayToSquare(7, row); break;
+      case 'PageUp': next = displayToSquare(col, 0); break;
+      case 'PageDown': next = displayToSquare(col, 7); break;
+      case 'Enter': case ' ': sound.unlock(); targetClick(current); break;
+      case 'Escape': setSelected(null); break;
+      default: return;
+    }
+    event.preventDefault(); event.stopPropagation(); setCursor(next); setAnnounce(pieceLabel(position.pieceAt(next), next));
+  };
+  const targets = new Map<number, Move>();
+  if (interactive && selected !== null && settings.showLegalMoves) for (const m of legalFor(selected)) targets.set(m.to, m);
+  const rect = boardRef.current?.getBoundingClientRect();
+  const pieceStyle = (sq: number, dragging: boolean, from: number | null): React.CSSProperties => {
+    if (dragging && drag && rect) return { transform: `translate(${drag.x - rect.left - rect.width / 16}px, ${drag.y - rect.top - rect.width / 16}px) scale(1.12)`, zIndex: 30 };
+    const { col, row } = squareToDisplay(from ?? sq);
     return { transform: `translate(${col * 100}%, ${row * 100}%)` };
   };
-
   return (
     <div className="board-frame">
-      <div
-        ref={boardRef}
-        className={`board${interactive ? ' interactive' : ''}`}
-        role="grid"
-        tabIndex={0}
-        aria-label={label ?? 'Chess board'}
-        onKeyDown={onKeyDown}
-        onPointerDown={onBoardPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        {squares.map(({ sq, light, col, row }) => {
-          const isLast = lastMove && (lastMove.from === sq || lastMove.to === sq);
-          const isSel = selected === sq || staged?.from === sq || staged?.to === sq;
-          const isCheck = checkSquare === sq;
-          const hint = legalTargets.get(sq);
-          const hintClass = hint ? (position.pieceAt(sq) !== 0 || hint.flag === 1 ? 'hint hint-capture' : 'hint') : '';
-          return (
-            <div
-              key={sq}
-              data-sq={algebraic(sq)}
-              className={[
-                'sq',
-                light ? 'light' : 'dark',
-                isLast ? 'last' : '',
-                isSel ? 'sel' : '',
-                isCheck ? 'check' : '',
-                hintClass,
-                hoverSq === sq && drag ? 'hover-drop' : '',
-                cursor === sq ? 'cursor' : '',
-              ].filter(Boolean).join(' ')}
-            >
-              {settings.showCoordinates && row === 7 && (
-                <span className="coord coord-file">{FILES[flipped ? 7 - col : col]}</span>
-              )}
-              {settings.showCoordinates && col === 0 && (
-                <span className="coord coord-rank">{RANKS[flipped ? 7 - row : row]}</span>
-              )}
-              {isCheck && <span className="check-pulse" key={pulse} aria-hidden="true" />}
-              <div className="sq-overlay" />
+      <div style={{ position: 'relative' }}>
+        <div ref={boardRef} className={`board${interactive ? ' interactive' : ''}`} role="grid" tabIndex={0}
+          aria-label={label ?? 'Chess board'} aria-rowcount={8} aria-colcount={8} aria-readonly={!interactive}
+          aria-describedby={`${id}-help`} aria-activedescendant={cursor === null ? undefined : `${id}-${algebraic(cursor)}`}
+          onFocus={(e) => { if (e.target === e.currentTarget && interactive && cursor === null) setCursor(displayToSquare(0, 0)); }}
+          onKeyDown={onKeyDown} onPointerDown={(e) => pointerDown(e)} onPointerMove={pointerMove} onPointerUp={pointerUp}
+          onPointerCancel={cancelDrag} onLostPointerCapture={cancelDrag}>
+          {Array.from({ length: 8 }, (_, row) => (
+            <div className="board-row" role="row" aria-rowindex={row + 1} key={row} style={{ display: 'contents' }}>
+              {Array.from({ length: 8 }, (_, col) => {
+                const sq = displayToSquare(col, row), check = checkSquare === sq, hint = targets.get(sq);
+                return (
+                  <div key={sq} id={`${id}-${algebraic(sq)}`} data-sq={algebraic(sq)} role="gridcell" aria-colindex={col + 1}
+                    aria-label={`${pieceLabel(position.pieceAt(sq), sq)}${check ? ', in check' : ''}`} aria-selected={selected === sq || staged?.from === sq || staged?.to === sq}
+                    className={['sq', (fileOf(sq) + rankOf(sq)) % 2 === 1 ? 'light' : 'dark', lastMove && (lastMove.from === sq || lastMove.to === sq) ? 'last' : '', selected === sq || staged?.from === sq || staged?.to === sq ? 'sel' : '', check ? 'check' : '', hint ? position.pieceAt(sq) !== 0 || hint.flag === 1 ? 'hint hint-capture' : 'hint' : '', hoverSq === sq && drag ? 'hover-drop' : '', cursor === sq ? 'cursor' : ''].filter(Boolean).join(' ')}>
+                    {settings.showCoordinates && row === 7 && <span className="coord coord-file" aria-hidden="true">{FILES[fileOf(sq)]}</span>}
+                    {settings.showCoordinates && col === 0 && <span className="coord coord-rank" aria-hidden="true">{RANKS[rankOf(sq)]}</span>}
+                    {check && <span className="check-pulse" key={pulse} aria-hidden="true" />}
+                    <div className="sq-overlay" aria-hidden="true" />
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-
-        <div className="piece-layer">
-          {ghost && (
-            <div
-              className="piece fading"
-              style={pieceStyle(ghost.square, false, null)}
-              key={`ghost-${ghost.square}-${ghost.piece}`}
-            >
-              <PieceView piece={ghost.piece} style={settings.pieceStyle} />
-            </div>
-          )}
-          {pieces.map(({ sq, piece }) => {
-            const isDragging = drag?.from === sq && drag.moved;
-            const animStart = animFrom !== null && animate && animate.to === sq ? animFrom : null;
-            const shaking = shake !== null && shake.sq === sq;
-            return (
-              <div
-                key={`${sq}-${piece}${shaking ? `-s${shake.n}` : ''}`}
-                className={`piece${isDragging ? ' dragging' : ''}${selectable(sq) ? '' : ' idle'}${shaking ? ' shake' : ''}${popSq === sq ? ' pop' : ''}`}
-                style={pieceStyle(sq, isDragging, animStart)}
-                onPointerDown={(e) => onPiecePointerDown(e, sq)}
-                role="button"
-                aria-label={pieceLabel(piece, sq)}
-                aria-disabled={!interactive || !selectable(sq)}
-                tabIndex={-1}
-              >
-                <PieceView piece={piece} style={settings.pieceStyle} />
-              </div>
-            );
-          })}
-        </div>
-
-        {promo && (
-          <PromotionPicker
-            color={colorOf(position.pieceAt(promo.from))}
-            style={settings.pieceStyle}
-            onPick={(t) => {
-              const { from, to } = promo;
-              setPromo(null);
-              const ok = onMove(from, to, t);
-              if (!ok) onIllegal?.();
-              setSelected(null);
-            }}
-            onCancel={() => setPromo(null)}
-          />
-        )}
-
-        {staged && (
-          <div className="confirm-bar" role="dialog" aria-label="Confirm move">
-            <span className="confirm-text">
-              {squareName(staged.from)} → {squareName(staged.to)}
-            </span>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                const s = staged;
-                setStaged(null);
-                if (!onMove(s.from, s.to, null)) onIllegal?.();
-              }}
-              autoFocus
-            >
-              Accept
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setStaged(null)}>
-              Cancel
-            </button>
+          ))}
+          <div className="piece-layer" aria-hidden="true">
+            {ghost && <div className="piece fading" style={pieceStyle(ghost.square, false, null)} key={`ghost-${ghost.square}-${ghost.piece}`}><PieceView piece={ghost.piece} style={settings.pieceStyle} /></div>}
+            {pieces.map(({ sq, piece }) => {
+              const dragging = drag?.from === sq && drag.moved, from = animFrom !== null && animate?.to === sq ? animFrom : null;
+              const shaking = shake?.sq === sq;
+              return <div key={`${orientation}-${sq}-${piece}${shaking ? `-s${shake.n}` : ''}`} data-piece={algebraic(sq)}
+                className={`piece${dragging ? ' dragging' : ''}${interactive && selectable(sq) ? '' : ' idle'}${shaking ? ' shake' : ''}${popSq === sq ? ' pop' : ''}`}
+                style={{ ...pieceStyle(sq, dragging, from), ...(!settings.animateMoves || reducedMotion ? { transition: 'none' } : {}) }} onPointerDown={(e) => pointerDown(e, sq)}><PieceView piece={piece} style={settings.pieceStyle} /></div>;
+            })}
           </div>
-        )}
+        </div>
+        {promo && <PromotionPicker color={colorOf(position.pieceAt(promo.from))} style={settings.pieceStyle}
+          onPick={(type) => { const move = { ...promo, promo: type }; setPromo(null); commit(move); }} onCancel={() => { setPromo(null); setSelected(null); }} />}
+        {staged && <ConfirmMove move={staged} onAccept={() => execute(staged)} onCancel={() => setStaged(null)} />}
       </div>
-      <div className="sr-only" role="status" aria-live="polite">
-        {announce}
-      </div>
+      <p id={`${id}-help`} className="sr-only">{interactive ? 'Arrow keys explore the board. Enter or Space selects a piece or destination. Escape cancels selection. Home and End go to the row edges; Page Up and Page Down change rank.' : 'Read-only chessboard.'}</p>
+      <div className="sr-only" role="status" aria-live="polite">{announce}</div>
     </div>
   );
 }
-
 function PieceView({ piece, style }: { piece: number; style: Settings['pieceStyle'] }) {
-  if (style === 'glyph') {
-    const white = colorOf(piece) === WHITE;
-    return <span className={`piece-glyph ${white ? 'w' : 'b'}`}>{glyphFor(piece & 7, white)}</span>;
-  }
-  return <PieceSvg type={typeOf(piece) as PieceType} color={colorOf(piece) as Color} />;
+  return style === 'glyph' ? <span className={`piece-glyph ${colorOf(piece) === WHITE ? 'w' : 'b'}`}>{glyphFor(piece & 7, colorOf(piece) === WHITE)}</span>
+    : <PieceSvg type={typeOf(piece) as PieceType} color={colorOf(piece)} />;
 }
-
-function PromotionPicker({
-  color,
-  style,
-  onPick,
-  onCancel,
-}: {
-  color: Color;
-  style: Settings['pieceStyle'];
-  onPick: (t: PieceType) => void;
-  onCancel: () => void;
-}) {
-  const options: PieceType[] = [5 as PieceType, 2 as PieceType, 4 as PieceType, 3 as PieceType];
+function PromotionPicker({ color, style, onPick, onCancel }: { color: Color; style: Settings['pieceStyle']; onPick: (type: PieceType) => void; onCancel: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.querySelector('button')?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
+  useDialogFocus(ref, onCancel);
   return (
     <div className="promo-overlay">
-      <div className="promo-panel" role="dialog" aria-label="Choose promotion piece" ref={ref}>
+      <div className="promo-panel" role="dialog" aria-modal="true" aria-label="Choose promotion piece" ref={ref}>
+        <ToastHost />
         <div className="promo-label">Promote to</div>
-        <div className="promo-row">
-          {options.map((t) => (
-            <button key={t} className="promo-piece" onClick={() => onPick(t)} aria-label={`Promote to ${['', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king'][t]}`}>
-              {style === 'glyph' ? (
-                <span className={`piece-glyph ${color === WHITE ? 'w' : 'b'}`} style={{ fontSize: 30 }}>
-                  {glyphFor(t, color === WHITE)}
-                </span>
-              ) : (
-                <PieceSvg type={t} color={color} />
-              )}
-            </button>
-          ))}
-        </div>
+        <div className="promo-row">{([5, 2, 4, 3] as PieceType[]).map((type) => (
+          <button key={type} className="promo-piece" onClick={() => onPick(type)} aria-label={`Promote to ${pieceNames[type]}`}>
+            {style === 'glyph' ? <span className={`piece-glyph ${color === WHITE ? 'w' : 'b'}`} style={{ fontSize: 30 }}>{glyphFor(type, color === WHITE)}</span> : <PieceSvg type={type} color={color} />}
+          </button>
+        ))}</div>
+        <button className="btn btn-sm btn-ghost" onClick={onCancel}>Cancel</button>
       </div>
     </div>
   );
 }
-
-const squareName = (sq: number): string => FILES[fileOf(sq)] + RANKS[rankOf(sq)];
-
-const pieceLabel = (piece: number, sq: number): string => {
-  const names = ['', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
-  return `${colorOf(piece) === WHITE ? 'white' : 'black'} ${names[piece & 7]} on ${squareName(sq)}`;
-};
-
-// Audio unlock must happen inside a user gesture — the first board
-// interaction is a safe place.
-let unlocked = false;
-function soundUnlock(): void {
-  if (unlocked) return;
-  unlocked = true;
-  sound.unlock();
+function ConfirmMove({ move, onAccept, onCancel }: { move: PendingMove; onAccept: () => void; onCancel: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDialogFocus(ref, onCancel);
+  return <div className="confirm-bar" role="dialog" aria-modal="true" aria-label="Confirm move" ref={ref}>
+    <ToastHost />
+    <span className="confirm-text">{algebraic(move.from)} → {algebraic(move.to)}{move.promo ? ` = ${pieceNames[move.promo]}` : ''}</span>
+    <button className="btn btn-primary btn-sm" onClick={onAccept}>Accept</button>
+    <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
+  </div>;
 }

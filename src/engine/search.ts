@@ -58,6 +58,10 @@ export class Searcher {
     this.killers.fill(0);
     this.history.fill(0);
 
+    const terminal = (score: number): SearchResult => ({ bestMove: 0, score, depth: 0, nodes: 0, ms: 0, pv: [], rootScores: [] });
+    const variantWinner = pos.variantWinner();
+    if (variantWinner !== null) return terminal(variantWinner === pos.stm ? MATE_SCORE : -MATE_SCORE);
+
     // Root legal moves.
     const rootScratch = new Int32Array(256);
     const n = pos.generateInto(rootScratch);
@@ -75,13 +79,16 @@ export class Searcher {
       };
     }
 
+    if (pos.repetitionCount() >= 3 || pos.isDrawByFiftyMoves() || pos.isInsufficientMaterial()) return terminal(0);
+
     let bestMove = rootMoves[0]!;
     let bestScore = 0;
     let completedDepth = 0;
     let pv: number[] = [];
     let rootScores: MoveScore[] = rootMoves.map((m) => ({ move: m, score: 0 }));
 
-    for (let depth = 1; depth <= limits.maxDepth; depth++) {
+    const depthLimit = Math.max(1, Math.min(MAX_PLY - 1, Math.floor(limits.maxDepth) || 1));
+    for (let depth = 1; depth <= depthLimit; depth++) {
       const result = this.searchRoot(rootMoves, depth, opts?.rankRoot ?? false);
       if (this.stopped && depth > 1) break;
 
@@ -128,7 +135,7 @@ export class Searcher {
     const pos = this.pos;
     this.nodes++;
 
-    if ((this.nodes & 2047) === 0 && Date.now() >= this.deadline) this.stopped = true;
+    if ((this.nodes & 255) === 0 && Date.now() >= this.deadline) this.stopped = true;
     if (this.stopped) return 0;
 
     if (ply > 0) {
@@ -137,9 +144,11 @@ export class Searcher {
         const vw = pos.variantWinner();
         if (vw !== null) return vw === pos.stm ? MATE_SCORE - ply : -MATE_SCORE + ply;
       }
-      if (pos.isRepetition() || pos.isDrawByFiftyMoves() || pos.isInsufficientMaterial()) return 0;
+      if (pos.isDrawByFiftyMoves()) return pos.isCheckmate() ? -MATE_SCORE + ply : 0;
+      if (pos.isRepetition() || pos.isInsufficientMaterial()) return 0;
     }
 
+    if (ply >= MAX_PLY) return this.useQuiescence ? this.qsearch(alpha, beta, ply) : this.evalNow();
     const inCheck = pos.inCheck();
     if (inCheck) depth++;
 
@@ -197,6 +206,7 @@ export class Searcher {
         sc[bestIdx] = ts;
       }
       const m = buf[i]!;
+      const quiet = pos.pieceAt(moveTo(m)) === 0 && moveFlag(m) !== FLAG_EN_PASSANT && movePromo(m) === 0;
 
       pos.makeMove(m);
       if (pos.inCheck(other(pos.stm))) {
@@ -204,7 +214,6 @@ export class Searcher {
         continue;
       }
       legalCount++;
-      const quiet = pos.pieceAt(moveTo(m)) === 0 && moveFlag(m) !== FLAG_EN_PASSANT && movePromo(m) === 0;
       const givesCheck = pos.inCheck();
 
       let reduction = 0;
@@ -260,7 +269,7 @@ export class Searcher {
   private qsearch(alpha: number, beta: number, ply: number): number {
     const pos = this.pos;
     this.nodes++;
-    if ((this.nodes & 2047) === 0 && Date.now() >= this.deadline) this.stopped = true;
+    if ((this.nodes & 255) === 0 && Date.now() >= this.deadline) this.stopped = true;
     if (this.stopped) return 0;
     if (ply >= MAX_TOTAL_PLY) return this.evalNow();
 
@@ -269,7 +278,10 @@ export class Searcher {
       if (vw !== null) return vw === pos.stm ? MATE_SCORE - ply : -MATE_SCORE + ply;
     }
 
+    if (pos.isDrawByFiftyMoves()) return pos.isCheckmate() ? -MATE_SCORE + ply : 0;
+    if (pos.isRepetition() || pos.isInsufficientMaterial()) return 0;
     const inCheck = pos.inCheck();
+    if (!inCheck && !pos.hasLegalMove()) return 0;
     let standPat = -INF;
     if (!inCheck) {
       standPat = this.evalNow();

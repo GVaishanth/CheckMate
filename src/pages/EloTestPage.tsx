@@ -1,9 +1,5 @@
-/**
- * Elo Test — eight engine-verified rounds (tactics, calculation, endgame
- * conversion, consistency) played against the local engine. The result is an
- * EXPERIMENTAL BROWSER ESTIMATE, clearly labeled as unofficial, derived from
- * real performance: centipawn loss, mate accuracy and conversion success.
- */
+import { ActionButton } from '../components/ActionButton';
+/** Eight local assessment rounds with an unofficial performance estimate. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Board, BoardAnimate, Orientation } from '../components/Board';
 import { MoveList } from '../components/MoveList';
@@ -14,11 +10,13 @@ import { GameController } from '../game/GameController';
 import { accuracyFromLoss } from '../game/analysis';
 import { CATEGORY_META, ELO_ROUNDS, EloRound } from '../data/elo';
 import { engineClient } from '../game/engineClient';
+import { useJobScope } from '../game/jobScope';
+import { MateClient } from '../education/mateClient';
 import { BOTS } from '../engine/bots';
 import { BLACK, Color, PieceType, WHITE } from '../chess/constants';
 import { moveSoundName, sound } from '../audio/sound';
 import { effectiveReducedMotion, useSettings } from '../storage/settings';
-import { eloRepo, EloResult, gamesRepo, StoredGame } from '../storage/db';
+import { eloRepo, EloResult, gamesRepo, StoredGame, dataRevision, dbAvailable } from '../storage/db';
 import { uid, formatDate } from '../utils';
 import { IconFlip, IconGauge, IconPlay, IconTrophy } from '../components/icons';
 
@@ -30,6 +28,11 @@ interface RoundScore {
   lossCp: number;
   moves: string[];
   fen: string;
+  records: StoredGame['moves'];
+  outcome: StoredGame['outcome'];
+  durationMs: number;
+  side: 'white' | 'black';
+  defender: string;
 }
 
 const RATING_MIN = 400;
@@ -40,25 +43,30 @@ export function EloTestPage() {
   const [roundIdx, setRoundIdx] = useState(0);
   const [scores, setScores] = useState<RoundScore[]>([]);
   const [history, setHistory] = useState<EloResult[] | null>(null);
+  const [completedResult, setCompletedResult] = useState<EloResult | null>(null);
+  const [persistent, setPersistent] = useState(true);
+  const scope = useJobScope(), revision = useRef(dataRevision());
 
   useEffect(() => {
-    void eloRepo.all().then(setHistory).catch(() => setHistory([]));
+    void eloRepo.all().then(async (rows) => { const available = await dbAvailable(); if (scope.active) { setHistory(rows); setPersistent(available); } }).catch(() => { if (scope.active) setHistory([]); });
   }, []);
 
   useRegisterCommands(
     useMemo(
-      () => [{ id: 'elo-restart', label: 'Restart Elo Test', group: 'Elo', run: () => setStage('intro') }],
-      [],
+      () => stage === 'intro' ? [] : [{ id: 'elo-restart', label: 'Restart Elo Test', group: 'Elo', run: () => setStage('intro') }],
+      [stage],
     ),
   );
 
   const finishRound = useCallback(
     (rs: RoundScore) => {
+      if (!scope.active || revision.current !== dataRevision() || stage !== 'round' || rs.roundId !== ELO_ROUNDS[roundIdx]?.id || scores.some((score) => score.roundId === rs.roundId)) return;
       const next = [...scores, rs];
       setScores(next);
       if (roundIdx + 1 >= ELO_ROUNDS.length) {
         const result = computeResult(next);
-        void eloRepo.save(result).catch(() => undefined);
+        setCompletedResult(result);
+        void eloRepo.save(result, revision.current).then(async () => { const available = await dbAvailable(); if (scope.active) { setPersistent(available); setHistory((rows) => [result, ...(rows ?? [])]); } });
         // Keep the consistency round's moves as a reviewable game.
         const consistency = next.find((r) => r.roundId === 's1');
         if (consistency && consistency.moves.length > 0) {
@@ -66,16 +74,14 @@ export function EloTestPage() {
             id: uid(),
             mode: 'elo',
             date: Date.now(),
-            whiteName: 'You',
-            blackName: 'Club Player',
+            whiteName: consistency.side === 'white' ? 'You' : consistency.defender,
+            blackName: consistency.side === 'black' ? 'You' : consistency.defender,
             startFen: consistency.fen,
-            moves: consistency.moves.map((uci, i) => ({
-              san: '', uci, fenAfter: '', msElapsed: 0, capture: false, check: false, _: i,
-            })) as unknown as StoredGame['moves'],
-            outcome: { result: 'draw', reason: 'agreement' },
-            durationMs: 0,
+            moves: consistency.records.map((move) => ({ ...move })),
+            outcome: consistency.outcome,
+            durationMs: consistency.durationMs,
           };
-          void gamesRepo.save(game).catch(() => undefined);
+          void gamesRepo.save(game, revision.current);
         }
         setStage('result');
         sound.play('reveal');
@@ -84,7 +90,7 @@ export function EloTestPage() {
         setStage('round');
       }
     },
-    [roundIdx, scores],
+    [roundIdx, scores, stage, scope],
   );
 
   if (stage === 'intro') {
@@ -106,7 +112,7 @@ export function EloTestPage() {
             <div className="panel-pad stack gap-12">
               <ol className="flow-steps small">
                 <li>Tactics — one move decides.</li>
-                <li>Calculation — forced mates to the end.</li>
+                <li>Calculation — find the key to a forced mate.</li>
                 <li>Endgames — convert winning positions.</li>
                 <li>Consistency — 12 quiet moves, every inaccuracy counted.</li>
               </ol>
@@ -118,7 +124,7 @@ export function EloTestPage() {
                   className="btn btn-primary btn-lg"
                   onClick={() => {
                     sound.unlock();
-                    setScores([]);
+                    setScores([]); setCompletedResult(null);
                     setRoundIdx(0);
                     setStage('round');
                     sound.play('gameStart');
@@ -175,10 +181,9 @@ export function EloTestPage() {
     );
   }
 
-  return <EloResultView scores={scores} onRestart={() => setStage('intro')} />;
+  return completedResult ? <EloResultView scores={scores} result={completedResult} persistent={persistent} onRestart={() => setStage('intro')} /> : null;
 }
 
-// ------------------------------------------------------------------ round
 
 function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloRound; roundNumber: number; totalRounds: number; onDone: (rs: RoundScore) => void }) {
   const { settings } = useSettings();
@@ -195,74 +200,77 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
   const [done, setDone] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const lossAcc = useRef<number[]>([]);
-  const busy = useRef(false);
+  const busy = useRef(false), doneRef = useRef(false);
+  const scope = useJobScope(), revision = useRef(dataRevision());
+  const operation = useRef<AbortController | null>(null), mate = useRef<MateClient | null>(null);
+  const [defenceError, setDefenceError] = useState(false);
+  useEffect(() => { mate.current = new MateClient(); return () => mate.current?.dispose(); }, []);
 
   const defenderStyle = useMemo(() => {
     const id = round.defender ?? 'club';
     return BOTS.find((b) => b.id === id) ?? BOTS[2]!;
   }, [round.defender]);
 
-  const finish = useCallback(
-    (score: number, note: string) => {
-      setDone(true);
-      setFeedback(note);
-      const avgLoss = lossAcc.current.length
-        ? lossAcc.current.reduce((a, b) => a + b, 0) / lossAcc.current.length
-        : 0;
-      window.setTimeout(() => {
-        onDone({
-          roundId: round.id,
-          score: Math.max(0, Math.min(1, score)),
-          lossCp: avgLoss,
-          moves: controller.moves.map((m) => m.uci),
-          fen: round.fen,
-        });
-      }, 1600);
-    },
-    [controller, onDone, round.fen, round.id],
-  );
-
-  const defenderTurn = async () => {
-    if (controller.phase !== 'playing') return;
-    setThinking(true);
-    try {
-      const r = await engineClient.search({
-        gameId: `elo-${round.id}`,
-        startFen: round.fen,
-        moves: controller.moves.map((m) => m.uci),
-        style: defenderStyle,
-      });
-      if (r.uci && controller.phase === 'playing') {
-        const rec = controller.applyUci(r.uci);
-        if (rec) {
-          setAnimate(settings.animateMoves ? uciToAnim(rec.uci, rec.capture) : null);
-          sound.play(moveSoundName(rec));
-        }
-      }
-    } catch {
-      toast('Engine unavailable — round cannot continue.', 'danger');
-    } finally {
-      setThinking(false);
-    }
+  const finish = useCallback((score: number, note: string) => {
+    if (!scope.active || doneRef.current || revision.current !== dataRevision()) return;
+    doneRef.current = true; setDone(true); setFeedback(note);
+    const records = controller.moves.map((move) => ({ ...move }));
+    const outcome: StoredGame['outcome'] = !controller.end ? { result: 'unfinished' } : controller.end.winner === 'white' ? { result: 'white' }
+      : controller.end.winner === 'black' ? { result: 'black' } : { result: 'draw', reason: controller.end.reason as 'stalemate' | 'threefold' | 'fifty-move' | 'insufficient' };
+    const result: RoundScore = { roundId: round.id, score: Math.max(0, Math.min(1, score)),
+      lossCp: lossAcc.current.length ? lossAcc.current.reduce((sum, loss) => sum + loss, 0) / lossAcc.current.length : 0,
+      moves: records.map((move) => move.uci), records, outcome, durationMs: controller.durationMs,
+      side: round.sideToMove, defender: defenderStyle.name, fen: round.fen };
+    scope.later(() => onDone(result), 1600);
+  }, [controller, onDone, round, scope, defenderStyle.name]);
+  const terminal = (): boolean => {
+    if (!controller.end) return false;
+    if (controller.end.winner === (playerColor === WHITE ? 'white' : 'black')) finish(1, controller.end.reason === 'checkmate' ? 'CHECKMATE' : 'Won.');
+    else if (controller.end.winner === null) finish(0.25, 'Drawn — the win dissolved.');
+    else finish(0, 'Lost the position.');
+    return true;
+  };
+  const live = (abort: AbortController) => scope.active && !abort.signal.aborted && !doneRef.current && revision.current === dataRevision();
+  const defenderTurn = async (abort: AbortController) => {
+    if (controller.phase !== 'playing') { terminal(); return; }
+    const reply = await engineClient.search({ gameId: `elo-${round.id}`, startFen: round.fen,
+      moves: controller.moves.map((move) => move.uci), style: defenderStyle, signal: abort.signal });
+    if (!live(abort)) return;
+    if (!reply.uci) throw new Error('No defence available');
+    const record = controller.applyUci(reply.uci);
+    if (!record) throw new Error('Illegal engine reply');
+    setDefenceError(false); setAnimate(settings.animateMoves ? uciToAnim(record.uci, record.capture) : null);
+    sound.play(moveSoundName(record)); terminal();
   };
 
   const onMove = async (from: number, to: number, promo: PieceType | null): Promise<boolean> => {
-    if (done || thinking || busy.current || controller.phase !== 'playing' || controller.turn !== playerColor) return false;
+    if (!scope.active || doneRef.current || thinking || busy.current || controller.phase !== 'playing' || controller.turn !== playerColor) return false;
     const fenBefore = controller.position.fen();
     const uci = sqAlg(from) + sqAlg(to) + promoLetter(promo);
-    busy.current = true;
+    const abort = scope.request(); operation.current = abort;
+    busy.current = true; setThinking(true);
     try {
       // --- one-shot rounds: judge the single move.
       if (round.kind === 'mate' || round.kind === 'tactics') {
-        const q = await engineClient.analyzeMove({ fen: fenBefore, playedUci: uci, depth: 8 });
+        const q = await engineClient.analyzeMove({ fen: fenBefore, playedUci: uci, depth: 8, signal: abort.signal });
+        if (!live(abort)) return false;
+        let forcedMate = false;
+        if (round.kind === 'mate') {
+          const proof = await mate.current!.request({ type: 'verify', fen: fenBefore, uci, movesLeft: round.mateIn ?? 1 });
+          if (!live(abort)) return false;
+          if (proof.status === 'limit' || proof.status === 'error') { setFeedback('The local proof limit was reached. Try again; no score was recorded.'); return false; }
+          forcedMate = proof.status === 'accepted';
+        }
         lossAcc.current.push(q.lossCp);
         const rec = controller.applyUci(uci);
         if (rec) {
           setAnimate(settings.animateMoves ? { from, to, capturedPiece: 0, capturedSquare: -1, promoted: uci.length === 5 } : null);
           sound.play(moveSoundName(rec));
         }
-        if (uci === round.bestMove || q.lossCp <= 40) {
+        if (round.kind === 'mate' ? forcedMate : uci === round.bestMove || q.lossCp <= 40) {
           finish(1, uci === round.bestMove ? 'BEST MOVE' : 'Found the winning move.');
+        } else if (round.kind === 'mate') {
+          finish(0, 'That move does not force mate within the target.');
         } else if (q.lossCp <= 150) {
           finish(1 - q.lossCp / 400, 'Good — but a stronger move existed.');
         } else {
@@ -272,7 +280,8 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
       }
 
       // --- convert / consistency: play on, measuring each move.
-      const q = await engineClient.analyzeMove({ fen: fenBefore, playedUci: uci, depth: 7 });
+      const q = await engineClient.analyzeMove({ fen: fenBefore, playedUci: uci, depth: 7, signal: abort.signal });
+      if (!live(abort)) return false;
       lossAcc.current.push(Math.min(600, q.lossCp));
       const captured = controller.position.pieceAt(to);
       const rec = controller.applyUci(uci);
@@ -280,18 +289,9 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
       setAnimate(settings.animateMoves ? { from, to, capturedPiece: captured, capturedSquare: to, promoted: promo !== null } : null);
       sound.play(moveSoundName(rec));
 
-      if (controller.end) {
-        if (controller.end.winner === (playerColor === WHITE ? 'white' : 'black')) {
-          finish(1, controller.end.reason === 'checkmate' ? 'CHECKMATE — flawless conversion.' : 'Won.');
-        } else if (controller.end.winner === null) {
-          finish(0.25, 'Drawn — the win dissolved.');
-        } else {
-          finish(0, 'Lost the position.');
-        }
-        return true;
-      }
+      if (terminal()) return true;
 
-      const played = controller.moves.filter((_, i) => i % 2 === (playerColor === WHITE ? 0 : 1)).length;
+      const played = controller.moves.filter((_, index) => ((index % 2 === 0) === (round.fen.split(/\s+/)[1] === 'w')) === (playerColor === WHITE)).length;
       const target = round.targetMoves ?? 12;
 
       if (round.kind === 'consistency') {
@@ -302,7 +302,8 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
 
       if (played >= target) {
         // Evaluate the resulting position for scoring.
-        const cp = await engineClient.evaluate(controller.position.fen());
+        const cp = await engineClient.evaluate(controller.position.fen(), abort.signal);
+        if (!live(abort)) return false;
         const forPlayer = playerColor === WHITE ? cp : -cp;
         if (round.kind === 'consistency') {
           const avgLoss = lossAcc.current.reduce((a, b) => a + b, 0) / lossAcc.current.length;
@@ -317,20 +318,20 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
         return true;
       }
 
-      await defenderTurn();
+      await defenderTurn(abort);
       return true;
     } catch {
-      toast('Could not verify the move — engine unavailable.', 'danger');
+      if (live(abort)) { setDefenceError(controller.turn !== playerColor); toast('Engine unavailable. Retry when ready.', 'danger'); }
       return false;
     } finally {
-      busy.current = false;
+      scope.release(abort);
+      if (scope.active && operation.current === abort) { busy.current = false; setThinking(false); }
     }
   };
 
   const interactive = !done && !thinking && controller.phase === 'playing' && controller.turn === playerColor;
   const legalFor = useCallback(
     (sq: number) => (interactive ? controller.movesFrom(sq) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [controller, interactive, version],
   );
   const selectable = useCallback(
@@ -339,7 +340,6 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
       const piece = controller.position.pieceAt(sq);
       return piece !== 0 && (piece >> 3) === (playerColor === WHITE ? 0 : 1);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [controller, interactive, playerColor, version],
   );
 
@@ -380,6 +380,14 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
           </div>
         </div>
 
+        {engineClient.workerFailed && <p className="small muted" role="status">Worker unavailable. Evaluations use a shorter local search.</p>}
+        {defenceError && !done && <div className="panel panel-pad" role="alert"><p>The defence could not move.</p><ActionButton className="btn btn-sm" blockedReason={thinking && 'The defence is already calculating its move. Wait for it to finish.'} onClick={() => {
+          if (busy.current || doneRef.current) return;
+          const abort = scope.request(); operation.current = abort; busy.current = true; setThinking(true);
+          void defenderTurn(abort).catch(() => { if (live(abort)) toast('Defence unavailable. Retry when ready.', 'danger'); }).finally(() => {
+            scope.release(abort); if (scope.active && operation.current === abort) { busy.current = false; setThinking(false); }
+          });
+        }}>RETRY DEFENCE</ActionButton></div>}
         {feedback && (
           <div className={`puzzle-feedback ${done ? 'ok' : ''}`} role="status">
             {done && <IconTrophy size={14} />}
@@ -396,7 +404,7 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
           </div>
           <div className="panel-pad stack gap-12">
             <p className="small" style={{ margin: 0 }}>{round.prompt}</p>
-            {round.kind === 'mate' && <div className="tiny faint">Mate in {round.mateIn}. One move to prove it.</div>}
+            {round.kind === 'mate' && <div className="tiny faint">Find the first move of mate in {round.mateIn}.</div>}
             {round.kind === 'tactics' && <div className="tiny faint">One move — make it count.</div>}
             {(round.kind === 'convert' || round.kind === 'consistency') && (
               <div className="tiny faint">{round.targetMoves} of your moves · engine defends</div>
@@ -410,14 +418,13 @@ function EloRoundView({ round, roundNumber, totalRounds, onDone }: { round: EloR
 
         <div className="panel">
           <div className="panel-title">Moves</div>
-          <MoveList sans={controller.moves.map((m) => m.san)} />
+          <MoveList startFen={controller.position.startFen} sans={controller.moves.map((m) => m.san)} />
         </div>
       </div>
     </div>
   );
 }
 
-// ------------------------------------------------------------------ result
 
 function computeResult(scores: RoundScore[]): EloResult {
   const roundById = new Map(ELO_ROUNDS.map((r) => [r.id, r]));
@@ -470,9 +477,8 @@ function computeResult(scores: RoundScore[]): EloResult {
   };
 }
 
-function EloResultView({ scores, onRestart }: { scores: RoundScore[]; onRestart: () => void }) {
+function EloResultView({ scores, result, persistent, onRestart }: { scores: RoundScore[]; result: EloResult; persistent: boolean; onRestart: () => void }) {
   const { settings } = useSettings();
-  const result = useMemo(() => computeResult(scores), [scores]);
   const roundById = new Map(ELO_ROUNDS.map((r) => [r.id, r]));
   const catEntries = (Object.keys(CATEGORY_META) as Array<keyof typeof CATEGORY_META>).filter((c) =>
     result.categories[c] !== undefined,
@@ -503,12 +509,13 @@ function EloResultView({ scores, onRestart }: { scores: RoundScore[]; onRestart:
     <div className="page">
       <div className="container">
         <div className="panel panel-pad elo-result stack gap-16" style={{ animation: 'rise-in 500ms var(--ease) both' }}>
+          {!persistent && <p className="small muted" role="status">Saving is unavailable. Export your data before closing this session.</p>}
           <div className="eyebrow" style={{ justifyContent: 'center' }}>Performance rating</div>
           <div className="elo-big" aria-label={`Estimated ${result.rating} elo`}>
             {shownRating}
           </div>
           <div className="tiny faint" style={{ textAlign: 'center' }}>
-            confidence {result.rangeLow}–{result.rangeHigh} · {result.rounds} rounds · {result.overall}% score
+            estimate range {result.rangeLow}–{result.rangeHigh} · {result.rounds} rounds · {result.overall}% score
           </div>
 
           <div className="tiny faint" style={{ textAlign: 'center' }} role="note">
@@ -565,7 +572,6 @@ function EloResultView({ scores, onRestart }: { scores: RoundScore[]; onRestart:
   );
 }
 
-// ------------------------------------------------------------------ helpers
 
 function sqAlg(sq: number): string {
   return `${String.fromCharCode(97 + (sq & 7))}${(sq >> 4) + 1}`;

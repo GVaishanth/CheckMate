@@ -1,8 +1,4 @@
-/* ============================================================
-   CHECKMATE — design tokens
-   Engine-room identity: near-black, ivory, one gold accent.
-   Sharp geometry, hairline structure, mono system text.
-   ============================================================ */
+
 
 @font-face {
   font-family: 'Inter';
@@ -35,7 +31,7 @@
   /* Text */
   --text-1: #e8e4d6;
   --text-2: #98a0ac;
-  --text-3: #5d6572;
+  --text-3: #8993a2;
 
   /* Accent — muted gold: interaction, selection, focus. Nothing else. */
   --accent: #d2a850;
@@ -79,7 +75,7 @@
   --sq-dark: #343b4a;
   --board-frame: #0c0e13;
   --board-line: #222836;
-  --coord: rgba(232, 228, 214, 0.42);
+  --coord: #e2ded5;
 
   /* Motion */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -99,17 +95,18 @@
 [data-board-theme='tournament'] {
   --sq-light: #e6cfa2;
   --sq-dark: #9a6b4a;
-  --coord: rgba(20, 16, 10, 0.55);
+  --coord: #000000;
 }
 [data-board-theme='walnut'] {
   --sq-light: #b28e60;
   --sq-dark: #7d5a38;
-  --coord: rgba(24, 18, 10, 0.6);
+  --coord: #f5f1e6;
+  --coord-light: #100c08;
 }
 [data-board-theme='fog'] {
   --sq-light: #d8dee6;
   --sq-dark: #96a2b2;
-  --coord: rgba(18, 22, 30, 0.55);
+  --coord: #12161e;
 }
 
 [data-high-contrast='true'] {
@@ -124,5 +121,6 @@
   --accent: #f0be5c;
   --sq-light: #6a7488;
   --sq-dark: #3d4552;
-  --coord: rgba(255, 255, 255, 0.65);
+  --coord: #ffffff;
+  --coord-light: #ffffff;
 }

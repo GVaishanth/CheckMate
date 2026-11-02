@@ -1,10 +1,4 @@
-/**
- * GameController — framework-agnostic game state machine shared by every
- * mode (bots, local, p2p, review). Chess rules live in Position; this class
- * adds game flow: move history, end detection, resignation, draws, takeback.
- *
- * UI frameworks subscribe via onChange(); React binds with useSyncExternalStore.
- */
+/** Observable game state: legal moves, recorded plies, endings and takebacks. */
 import { ChessVariant, Color, FLAG_EN_PASSANT, Move, PieceType, START_FEN, WHITE, algebraic, encodeMoveObj } from '../chess/constants';
 import { Position } from '../chess/position';
 import { moveToSan } from '../chess/san';
@@ -54,9 +48,8 @@ export class GameController {
     this.config = config;
     this.position = Position.fromFen(config.startFen ?? START_FEN);
     if (config.variant && config.variant !== 'standard') this.position.applyVariant(config.variant);
+    this.checkGameEnd();
   }
-
-  // -------------------------------------------------------------- plumbing
 
   subscribe = (fn: () => void): (() => void) => {
     this.listeners.add(fn);
@@ -139,13 +132,13 @@ export class GameController {
 
   private checkGameEnd(): void {
     const pos = this.position;
-    if (pos.isCheckmate()) {
+    const winner = pos.variantWinner();
+    if (winner !== null) {
+      this.finish(winner === WHITE ? 'white' : 'black', pos.variant === 'koth' ? 'king-of-the-hill' : 'three-check');
+    } else if (pos.isCheckmate()) {
       this.finish(pos.stm === WHITE ? 'black' : 'white', 'checkmate');
     } else if (pos.isStalemate()) {
       this.finish(null, 'stalemate');
-    } else if (pos.variantWinner() !== null) {
-      const vw = pos.variantWinner()!;
-      this.finish(vw === WHITE ? 'white' : 'black', pos.variant === 'koth' ? 'king-of-the-hill' : 'three-check');
     } else if (pos.repetitionCount() >= 3) {
       this.finish(null, 'threefold');
     } else if (pos.isDrawByFiftyMoves()) {
@@ -174,11 +167,13 @@ export class GameController {
   /** Reset to a fresh game with the same config (used by rematch). */
   reset(): void {
     this.position = Position.fromFen(this.config.startFen ?? START_FEN);
+    if (this.config.variant) this.position.applyVariant(this.config.variant);
     this.phase = 'playing';
     this.end = null;
     this.moves = [];
     this.startedAt = Date.now();
     this.endedAt = null;
+    this.checkGameEnd();
     this.emit();
   }
 
@@ -216,8 +211,8 @@ export class GameController {
   }
 
   /** True if the side to move at `ply` was white. */
-  static whiteToMoveAtPly(ply: number): boolean {
-    return ply % 2 === 0;
+  static whiteToMoveAtPly(ply: number, firstMover: Color = WHITE): boolean {
+    return (ply % 2 === 0) === (firstMover === WHITE);
   }
 
   static algebraicOf = algebraic;

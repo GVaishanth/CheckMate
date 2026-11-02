@@ -1,52 +1,30 @@
-/* Production builds include all bundled assets in SHELL. */
-const CACHE = 'checkmate-v1';
+const BUILD = 'source';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './favicon.svg'];
+const ROOT = new URL(self.registration.scope);
+const PREFIX = `checkmate:${encodeURIComponent(ROOT.pathname)}:`;
+const CACHE = `${PREFIX}${BUILD}`;
+const FILES = new Set(SHELL.map((path) => new URL(path, ROOT).href));
+const INDEX = new URL('index.html', ROOT).href;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
 });
-
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
-  );
+  event.waitUntil(caches.keys()
+    .then((keys) => Promise.all(keys.filter((key) => key.startsWith(PREFIX) && key !== CACHE).map((key) => caches.delete(key))))
+    .then(() => self.clients.claim()));
 });
-
 self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET' || !req.url.startsWith(self.location.origin)) return;
-
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          void caches.open(CACHE).then((c) => c.put('./', copy)).catch(() => undefined);
-          return res;
-        })
-        .catch(() => caches.match('./').then((r) => r ?? caches.match('./index.html'))),
-    );
+  const request = event.request, url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== ROOT.origin) return;
+  if (request.mode === 'navigate' && (url.pathname === ROOT.pathname || url.pathname === new URL(INDEX).pathname)) {
+    event.respondWith(caches.open(CACHE).then((cache) => cache.match(INDEX, { ignoreVary: true }))
+      .then((hit) => hit ?? fetch(request))
+      .catch(() => new Response('CHECKMATE is not cached. Reconnect once to prepare offline play.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })));
     return;
   }
-
-  event.respondWith(
-    caches.open(CACHE).then((cache) => cache.match(req, { ignoreVary: true })).catch(() => undefined).then((hit) => {
-      if (hit) return hit;
-      return fetch(req).then((res) => {
-        if (res.ok) {
-          const copy = res.clone();
-          void caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => undefined);
-        }
-        return res;
-      });
-    }),
-  );
+  if (!FILES.has(url.href)) return;
+  // Module and font requests add Origin; these public static files do not vary by it.
+  event.respondWith(caches.open(CACHE).then((cache) => cache.match(request, { ignoreVary: true }))
+    .then((hit) => hit ?? fetch(request)));
 });

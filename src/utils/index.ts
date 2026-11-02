@@ -30,24 +30,17 @@ export function clamp(v: number, lo: number, hi: number): number {
 }
 
 export async function copyText(text: string): Promise<boolean> {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* try the local selection fallback */ }
+  let area: HTMLTextAreaElement | null = null;
+  const previous = document.activeElement as HTMLElement | null;
   try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand('copy');
-      ta.remove();
-      return ok;
-    } catch {
-      return false;
-    }
-  }
+    area = document.createElement('textarea'); area.value = text; area.readOnly = true; area.tabIndex = -1;
+    area.style.cssText = 'position:fixed;opacity:0;width:1px;height:1px;';
+    (previous?.closest('[role="dialog"]') ?? document.body).appendChild(area);
+    area.focus({ preventScroll: true }); area.select();
+    return document.execCommand('copy');
+  } catch { return false; }
+  finally { area?.remove(); if (previous?.isConnected) previous.focus({ preventScroll: true }); }
 }
 
 export function downloadFile(filename: string, content: string, type = 'text/plain'): void {
@@ -56,7 +49,7 @@ export function downloadFile(filename: string, content: string, type = 'text/pla
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
-  a.click();
+  document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 

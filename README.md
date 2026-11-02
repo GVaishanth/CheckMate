@@ -1,258 +1,174 @@
 # CHECKMATE
 
-A complete chess platform that runs entirely in the browser: six configurable engine opponents, interactive opening and checkmate lessons, engine-verified puzzles, a performance-rating test, and peer-to-peer multiplayer — with no backend, no accounts, and no network dependency.
+A static browser chess application with a custom TypeScript rules/search engine, six configurable opponents, local and peer-to-peer games, tactical puzzles, opening and checkmate lessons, and an experimental performance-rating test.
 
-```
-THINK. CALCULATE. CHECKMATE.
-```
+No application backend, accounts, analytics, external chess APIs, engine downloads, hosted fonts or paid services are required. Solo play works offline after the production app has finished caching its files. Multiplayer still needs a direct connection between the players.
 
-## Overview
+## Run locally
 
-CHECKMATE is a static single-page application. After `npm install && npm run build`, everything the game needs — rules engine, search engine, puzzle dataset, sounds, fonts — is inside `dist/`. Deploy that folder to GitHub Pages (or any static host) and it works, online or offline.
+Use **Node.js 22.12 or later**; Node.js 24 LTS is recommended and used by the deployment workflow.
 
-The rules and search engines are written in TypeScript. Search runs in a Web Worker, multiplayer uses a host-authoritative WebRTC data channel, and puzzles are generated and verified locally. React and React Router are the only runtime libraries.
-
-## Features
-
-- **Six bot opponents** — genuinely different engine configurations (search depth, time budget, evaluation noise, blunder rate, opening theory), from ROOKIE (≈600) to GRANDMASTER (2100+). Ratings are approximate strength labels, not measurements.
-- **Full chess rules** — castling, en passant, promotion with a picker, threefold repetition, fifty-move rule, insufficient material, stalemate. Move generation is perft-validated.
-- **Rule variants** — Three-Check (deliver check three times to win) and King of the Hill (march your king to the center), playable against every bot and in pass & play. The engine searches them natively: the win conditions are terminal nodes in the search tree, and the transposition hash includes the variant and check counters, so variant positions never collide with standard ones.
-- **Drag & drop + click-to-move + keyboard play**, legal-move hints, last-move/check/selection highlights, move animations, board flip, four themes, two piece sets (custom SVG **VANGUARD** set or classic glyphs).
-- **Responsive phone-to-desktop layout** — landscape phones reflow the game into a board-first two-column view with the panels beside the board, put the review commentary next to the board, and keep the game-over panel reachable in short viewports.
-- **Post-game analysis** — the engine re-scores every move of the game and reports accuracy plus an estimated performance rating.
-- **Automatic review** — THE ANNOTATOR, the post-game reviewer, replays any finished game move by move: every ply is scored in the engine worker, then the replay walks through with commentary (best / good / inaccuracy / mistake / blunder and the stronger move where one exists), auto-advancing like a lesson recap. Pause, step, skip, and read the per-side verdict at the end. Offered at the end of every mode — bot games, pass & play, and peer-to-peer — with a per-side accuracy and estimated performance rating for both players.
-- **Multiplayer** — direct browser-to-browser WebRTC with manual code exchange, or same-device pass & play.
-- **310 bundled puzzles** in nine tactical categories across four difficulties, with multi-move solutions, retry, solution reveal, and local statistics.
-- **Education** — 18 short lessons: 10 openings and 8 mating patterns. Step through annotated demonstrations, practise on the board, then recall without prompts. Memory cues, common traps, progressive hints and locally scheduled reviews help the ideas stick.
-- **Elo test** — eight engine-verified rounds with a performance estimate, confidence range, and per-category breakdown.
-- **Game history** — every finished game stored locally; reopen and step through ply by ply; import and export PGN.
-- **Command palette** (`Ctrl+K` or `/`), sound design synthesized in the Web Audio API, service-worker offline support, and a keyboard-playable, screen-reader-labelled interface.
-
-## Game Modes
-
-### Bots
-
-Six opponents on a difficulty ladder. Each is a different configuration of the same engine:
-
-| Bot | Search | Evaluation | Nerve |
-| --- | --- | --- | --- |
-| ROOKIE | depth 1, no quiescence | material only | ±130cp noise, 30% blunder rate |
-| APPRENTICE | depth 2 + quiescence | material only | ±70cp noise, 12% blunders |
-| CLUB PLAYER | depth 3 | full | ±35cp noise |
-| COMPETITOR | depth 4 | full | ±15cp noise, rare blunders |
-| MASTER | depth 6 | full | clean search |
-| GRANDMASTER | depth 10, 1.9s budget | full | clean search |
-
-Weaker bots also consult less opening theory. The engine runs in a Web Worker; the UI shows search depth and node counts while the opponent thinks and never freezes. Undo, draw offers, resignation and restart are supported.
-
-### Multiplayer
-
-Two modes, honestly labelled:
-
-- **Direct connection (P2P):** one player creates a room and gets a connection code (a compressed WebRTC offer). The other pastes it and answers with a reply code. Once the host accepts the reply, the game runs over a direct data channel. The host owns the authoritative game state, validates every guest move against the rules engine, and broadcasts the full state after each accepted move. Draw offers, resignations and rematch offers run over the same protocol, and a lost connection ends the game with a clear result rather than a frozen board.
-- **Pass & play:** same device. An auto-flip toggle turns the board to face whoever is to move; press it again to lock a fixed orientation. Rule variants (Three-Check, King of the Hill) can be picked before the duel; switching rules starts a fresh game.
-
-Because there is no signaling relay, STUN or TURN, direct connections work between browsers that can reach each other — the same machine or a local network is reliable; cross-internet connections depend on the network path. There is no matchmaking and no claim of one.
-
-### Puzzles
-
-The dataset is generated offline by this repository's own engine (`scripts/generate-puzzles.ts`): it self-plays fast games, harvests positions where the engine can prove a decisive shot or a forced mate, and classifies the motif — checkmate, fork, pin, skewer, discovered attack, sacrifice, back-rank, endgame conversion, or mixed. Mate lines are extended move by move until checkmate and verified by the test suite; no scraped databases are involved. Solutions accept any move the engine judges equally strong, not just the stored line.
-
-### Education
-
-Open **Learn** in the navigation, or **05 Education** on the home screen. Lesson links use `/#/learn` and `/#/learn/<lesson-id>`.
-
-Each lesson has three stages:
-
-1. **Study** — step through the demonstration, play or pause the line, or tap a move to jump to its position. Every move has a short explanation. A memory cue, three key ideas and a common trap keep the lesson focused.
-2. **Practice** — make the moves on the board, using touch, drag or keyboard. Opening lessons let you choose either colour; the other side replies automatically. Hints first explain the idea, then show a move with its squares highlighted. There is no time limit or lives system.
-3. **Recall** — repeat without the explanation or move list. Hints remain available, but the result distinguishes an unaided recall from an assisted rehearsal.
-
-**Openings:** Italian Game, London System, Scotch Game, Queen’s Gambit Declined, Caro–Kann, French Advance, Classical Sicilian, Ruy Lopez, King’s Indian and Scandinavian. These are selected, legal lines rather than complete repertoires. The drill checks the line being studied; a different legal opening move is not labelled a chess mistake.
-
-**Checkmates:** back-rank, supported queen, smothered mate, rook ladder, Arabian mate, Anastasia’s mate, queen-and-king coordination and rook-and-king opposition. Exercises range from mate in one to mate in three. The demonstrations are illustrative positions, not full endgame courses.
-
-Mate checking is separate from the bot search: a small worker proves the bounded mate against **every legal defence**, accepts alternative forced mating routes, and chooses a valid defence that prolongs the mate. Immediate checkmate is validated by the rules engine. A timeout leaves the position unchanged rather than guessing whether a move wins. If workers are blocked, a smaller bounded check runs locally.
-
-Completed study, practice and recall stages are stored in the existing IndexedDB key-value store. Clean recalls schedule reviews after 1, 3, 7, 14 and 30 days; early repetitions do not advance the spacing. An assisted recall schedules a retry in 10 minutes. The library shows due reviews, and learning progress is included in the existing data export, import and reset controls. If storage is unavailable, the mode stays playable and labels progress as session-only.
-
-### Elo Test
-
-Eight rounds: tactical shots, forced mates, endgame conversions, and a consistency grind. Every move you play is compared against the engine's best; the estimate is derived from average centipawn loss, and the result screen shows a confidence range plus per-category scores (tactics / calculation / endgame / consistency).
-
-This is an **experimental browser estimate** — it is not an official rating of any kind and is not comparable to federation ratings.
-
-## Chess Engine
-
-Written from scratch in TypeScript, isolated from the UI, and running in a Web Worker (with a main-thread fallback):
-
-```
-0x88 board + Zobrist hashing
-        ↓
-legal move generation (perft-validated)
-        ↓
-iterative-deepening negamax with principal-variation search
-        ↓
-alpha-beta pruning + transposition table (mate-distance corrected)
-        ↓
-evaluation: material + piece-square tables (midgame/endgame phased),
-bishop pair, rook on open files, passed pawns, king safety, mobility
-        ↓
-best move
-```
-
-Additional techniques: null-move pruning, late-move reductions, quiescence search, move ordering (TT move, MVV-LVA captures, killer moves, history heuristic), and an incremental material+PST score maintained by `makeMove`/`undoMove`. Search is time-budgeted (iterative deepening stops cleanly), which makes bot strength configurable by both depth and thinking time. Roughly 600k nodes/second in a worker thread on a desktop machine.
-
-Bot personality is applied at the root: evaluation noise, deliberate blunders sampled from the weaker half of legal moves, and opening-book depth — never by distorting the rules.
-
-## Multiplayer Architecture
-
-```
-Guest plays a move
-        │  { t: 'try', uci }
-        ▼
-Host: rules engine validates the move ──invalid──▶ { t: 'rejected' }
-        │  valid
-        ▼
-Host applies the move, checks game end
-        │  { t: 'state', moves, names, turn, result }
-        ▼
-Guest replays the validated plies onto its own board
-```
-
-The host is authoritative: guests never mutate shared state, they apply what the host broadcasts (each ply re-validated locally). Incoming messages are typed and validated; malformed frames are dropped. Codes are exchanged out of band (any chat app), so no server ever sees a move.
-
-## Audio System
-
-All sound is procedurally synthesized with the Web Audio API — there are no audio files, nothing is downloaded, and every cue works offline. One coherent "wood + tone" family:
-
-- **Move / capture / castle** — wooden thocks at different pitches; capture adds filtered noise.
-- **Check** — a sharper two-tone cue; **checkmate** — the landing thock, a pause, then a descending resolution.
-- **Promotion** — a rising pair; **victory / defeat / draw** — distinct, restrained resolutions.
-- **Puzzles** — quiet confirmation per correct move, a fuller chord on completion.
-
-A single `sound` module owns the `AudioContext` (created silently on first user gesture, per browser autoplay policy). Per-sound volume tiers keep UI ticks under chess events, per-sound cooldowns prevent spam, and every audible cue has a visual twin — the app is fully usable muted. Sound effects, interface sounds, and master volume are separately configurable and persisted.
-
-## Animation System
-
-One motion language: fast (110ms) for state changes, medium (200ms) for piece movement, with a single easing curve. Piece slides, capture ghosts, a promotion pop, a one-shot check ring on the king, a 240ms refusal shake for illegal actions (the piece stays selected for an immediate retry), staggered game-over stat reveal, and a deliberate half-second beat between the final move and the result panel. `prefers-reduced-motion` (and the in-app toggle) collapses all of it while keeping the state feedback — highlights, panels, results — fully legible.
-
-## Data & Persistence
-
-- **IndexedDB** (`checkmate` v1): finished games, puzzle progress, Elo results, and education progress in the existing `kv` store. No database upgrade is required.
-- **localStorage**: settings, puzzle streak. Both are versioned and validated on load; corrupt data falls back to defaults instead of crashing.
-- **Export / import**: one JSON bundle with everything, plus PGN import/export for games. Reset (with confirmation) wipes only this app's data.
-- Nothing is ever uploaded. There is no analytics, no telemetry, no network call at runtime.
-
-## Offline Architecture
-
-```
-UI (React SPA)
- ↓ local game state
-Rules engine (src/chess)
- ↓ Web Worker
-Search engine (src/engine)
- ↓ bundled
-Puzzle dataset + Elo rounds (src/data) + lessons (src/education)
- ↓ local
-IndexedDB / localStorage persistence
-```
-
-After the first successful service-worker installation, the app can be reloaded and used offline. The production build adds all hashed JavaScript, CSS, fonts and both workers to the precache list, including code for modes not yet opened. Cache names are stamped from the build, and old app caches are purged on activation. Service workers require HTTPS or localhost. Multiplayer is the single exception: peers need a connection *to each other* (not to any server).
-
-## Technology Stack
-
-- React 18 + TypeScript 5 (strict, no `any`) — UI layer only
-- Vite 5 — build, worker bundling, code splitting
-- Web APIs: Web Workers, WebRTC (data channels), Web Audio, IndexedDB, Cache Storage
-- React Router 6 (hash routing) — the only runtime dependency beyond React
-- Vitest — 104 tests covering perft, engine behavior, review, variants, puzzle integrity, lesson legality, forced mates, recall scheduling and education persistence
-- Three self-hosted variable fonts (Space Grotesk, Inter, JetBrains Mono) — no CDN
-
-## Project Structure
-
-```
-src/
-  chess/        rules: 0x88 position, Zobrist, PST, SAN, PGN
-  engine/       search, evaluation, opening book, bot personalities
-  workers/      engine search and education mate-proof workers
-  education/    annotated lessons, bounded mate proof, recall scheduling
-  game/         GameController, engine client, analysis math, hooks
-  multiplayer/  WebRTC peer connection
-  pages/        Home, Bots, Multiplayer, Puzzles, Education, EloTest, History, Review
-  components/   Board, pieces, move list, modals, palette, shell…
-  storage/      IndexedDB repositories, settings, export/import
-  audio/        synthesized sound module
-  data/         puzzles.json + elo.json (generated offline by scripts/)
-  styles/       tokens → base → components → board → pages
-scripts/        dataset generators, benchmarks, postbuild checks, OG-card render
-tests/          perft, engine, review, variants, dataset integrity, education
-```
-
-## Running Locally
-
-```bash
+```sh
 npm install
-npm run dev          # vite dev server
+npm run dev
 ```
 
-```bash
-npm test             # 104 tests across engine, rules, datasets and education
-npm run typecheck    # strict TS for app + tools
-npm run bench        # engine nodes/second benchmark
-npm run gen:puzzles  # regenerate the puzzle dataset (offline, ~20 min)
-npm run gen:elo      # regenerate the Elo test rounds (offline)
+For a production build:
+
+```sh
+npm run typecheck
+npm test
+npm run build
+npm run preview
 ```
 
-## Production Build
+Deploy the contents of `dist/`, not the source directory. Serve the app over HTTP for local development or HTTPS for deployment; opening `index.html` directly through `file://` is not supported.
 
-```bash
-npm run build        # typecheck → vite build → postbuild verification
-npm run preview      # serve dist/ locally
+`npm ci` can replace `npm install` for a lockfile-based installation. Font files are checked at installation, and the build verifies relative asset paths, the production policy, licences, fonts and offline-cache contents. It fails when required deployment files are missing.
+
+## Playing
+
+- **Bots:** tap an opponent to select it, then tap again to choose your side and rules. Search depth, time budget, evaluation, opening-book use and deliberate inaccuracies differ between opponents.
+- **Pass & Play:** two people share one device. Auto-flip follows the side to move; fixed orientation and manual board flipping are also available.
+- **P2P:** one player creates a room, the other pastes the room code and returns a reply code, and the host connects. Moves then travel over a WebRTC data channel. Draw offers, resignation and seat-swapping rematches are supported.
+- **Puzzles:** 310 bundled positions across nine themes and four difficulties. The rules engine recognizes immediate mates; other moves are compared with a bounded local search. Alternatives need not match the stored line. Checkmate, back-rank and mating-endgame drills continue until actual mate or a drawn/lost position, rather than awarding completion solely for reaching the stored line length.
+- **Education:** 120 opening lessons and 120 mating exercises, with Study, Practice and Recall stages.
+- **Elo Test:** eight local assessment positions covering tactical choices, the first move of forced mates, conversion and consistency. The result is an **experimental heuristic estimate**, not a federation rating or a calibrated statistical confidence interval.
+- **History:** replay saved games, import one PGN game at a time, and copy or export PGN. Completed consistency rounds retain their actual move records and outcome; an unfinished trial is not recorded as an agreed draw.
+
+### Bot configurations
+
+Depths are limits, not a promise that every position reaches that depth. Time limits, device speed and the search position affect the completed search.
+
+| Opponent | Depth / time budget | Evaluation and variation |
+| --- | --- | --- |
+| ROOKIE | 1 ply / 250 ms | Material and piece-square tables; no quiescence or book; ±130 cp noise; 30% weaker-choice probability |
+| APPRENTICE | 2 plies / 350 ms | Basic evaluation with quiescence; short book; ±70 cp noise; 12% weaker choices |
+| CLUB PLAYER | 3 plies / 500 ms | Full evaluation; book; ±35 cp noise; 5% weaker choices |
+| COMPETITOR | 4 plies / 700 ms | Full evaluation; book; ±15 cp noise; 1.5% weaker choices |
+| MASTER | 6 plies / 1.1 s | Full evaluation and book; no added noise or deliberate blunders |
+| GRANDMASTER | 10 plies / 1.9 s | Strongest local configuration; no added noise or deliberate blunders |
+
+Names and displayed strength ranges are approximate labels. They have not been calibrated against rated players and do not establish master or grandmaster playing strength.
+
+### Rules and review
+
+Standard play includes castling, en passant, all promotion choices, checkmate, stalemate, threefold repetition, the fifty-move rule and supported insufficient-material cases. The controller automatically ends games on its supported draw conditions; it does not implement every federation claim procedure or competition regulation.
+
+Three-Check and King of the Hill are available against bots and in Pass & Play. Variant wins are terminal search states, and position hashes include the variant and check counters. Static evaluation is shared with standard chess rather than being separately tuned for each variant. P2P games use standard chess.
+
+THE ANNOTATOR scores recorded plies locally and offers an automatic replay, stronger-move suggestions and a per-side summary. Accuracy and performance values are derived from centipawn-loss estimates. They are approximate, search-dependent metrics, not official ratings; a side with no analyzed moves receives no fabricated accuracy score. Review can be paused, stepped or skipped.
+
+## Education courses
+
+Openings and checkmates are **independent tracks**, each with **10 levels of 12 topics**. Level 1 starts unlocked. To open the next level, complete the preceding level with:
+
+1. Practice completions on at least **10 distinct topics**.
+2. At least **6 distinct completed topics** with a historical unaided Recall.
+
+Unaided means no hints or retries in that attempt. Study alone does not complete a topic. Repeating one topic cannot inflate the unique-topic threshold, and a later assisted review does not revoke an earned clean recall or an unlocked level. Direct lesson links respect the same sequential prerequisites as the library. These are local learning gates, not authentication or tamper-proof achievements.
+
+- **Study:** annotated demonstrations, move-by-move navigation, plans and common traps.
+- **Practice:** guided board work and progressive hints. Opening lessons can be rehearsed from either colour, with automatic replies. A different legal move is identified as a departure from the studied line, not necessarily a chess mistake.
+- **Recall:** prompts and the demonstration are hidden. A bounded mate prover accepts alternatives that force mate within the exercise limit and checks legal defences. A proof limit is reported rather than treated as a successful verification.
+- **Review scheduling:** clean recalls use local intervals of 1, 3, 7, 14 and 30 days; assisted recalls are scheduled for a shorter retry. Scheduling uses this device's clock and does not send notifications or contact a service.
+
+The original 18 lesson IDs remain available. The expanded material includes castling, en passant, double check, promotion and underpromotion, sacrifices, and full-board mate-in-three exercises. The opening course contains selected lines, not exhaustive repertoires; the mating exercises are not a complete endgame curriculum.
+
+## Controls and accessibility
+
+The board supports touch, click-to-move, dragging and keyboard play.
+
+| Key | Action |
+| --- | --- |
+| Arrow keys | Explore board squares |
+| Enter / Space | Select a piece or destination |
+| Escape | Cancel a selection or close the top dialog |
+| Home / End | Move to the ends of the current displayed row |
+| Page Up / Page Down | Move to the top or bottom of the current displayed file |
+| F | Flip the current board |
+| M | Toggle the move list where available |
+| Ctrl+K / Cmd+K, or `/` | Open the command palette |
+
+Unavailable buttons remain focusable. Clicking, tapping or pressing Enter/Space explains the specific restriction without executing the action. Locked lessons show the remaining Practice and unaided Recall requirements; busy operations, ended games, replay boundaries and disconnected peers give their own reasons. Feedback is announced in the active dialog and does not steal focus.
+
+Shortcuts are scoped so typing and native controls retain their behaviour. Dialogs trap focus; covered dialogs are inert, and focus is restored on closing. Dismissed game results can be reopened with **RESULT**.
+
+Settings include four board themes, custom SVG or classic glyph pieces, coordinates, legal-move hints, move confirmation, auto-queen, sound, volume, high contrast and reduced motion. Some mating exercises intentionally require a promotion choice even when auto-queen is enabled.
+
+Sounds are synthesized locally with Web Audio after a user gesture. Audio failure is nonfatal, and game status is also represented visually. There are no audio downloads, recognizable game-sound recordings, continuous background music or required haptics.
+
+## Local data and privacy
+
+- IndexedDB (`checkmate`, version 1) stores games, puzzle progress, Elo results and Education progress in the existing `kv` store.
+- localStorage stores normalized preferences and puzzle-streak information.
+- **Export Data** creates a local JSON backup including games, puzzle progress, ratings, settings, streaks and Education progress.
+- **Import Data** validates the backup and replays game moves before replacing records. IndexedDB replacement is transactional. Preferences use localStorage, so the two browser storage APIs cannot form one atomic transaction.
+- **Reset All Data** clears records and preferences. Active tasks are revision-guarded so delayed results from an earlier session are not written back after a completed reset or restore.
+
+When persistent storage fails, the app retains an in-memory session where possible and reports the limitation. That fallback does **not** survive closing or reloading the page. Browser storage can also be cleared or evicted; export important data. Use one active tab for play or restore operations: simultaneous edits in multiple tabs are not a conflict-free synchronization system.
+
+PGN import accepts a single game up to 1 MB and 20,000 plies, with legal replay, FEN roots and supported variant headers. JSON restore is bounded to prevent unrestricted record/move allocation. Imports and exports are handled in the browser and are not uploaded. Imported PGN outcomes are the file's declared results, not independently certified competition results. A PGN draw has an unspecified reason; an agreement is not invented when the file supplies no reason.
+
+P2P uses **no public signaling, STUN or TURN service**. Same-device or same-LAN connections are most reliable; a connection across unrelated networks is not guaranteed. Manual connection codes can contain temporary network addresses: share them only with the intended opponent. The host validates and distributes game state, but this is trusted-friend play, not cheat-proof rated play. Starting again after a disconnect creates a new room; it does not resume a lost session.
+
+## Offline behaviour and deployment
+
+Production builds precache the application shell, lazy Education module, both workers, local fonts, artwork and licence notices. A first online visit must finish installing the service worker before offline reloads are available. Development mode does not register the production worker.
+
+Caches are scoped to the deployment path and identified by the built contents. Root and nested installations do not delete each other's caches. Unknown URLs are not answered with the cached app shell. A new worker waits while old controlled tabs remain open so an old page is not forced to use a new set of chunks; close all old tabs and reopen to activate an installed update. Browser cache eviction or disabled service workers can remove offline availability.
+
+The production document includes a same-origin content policy for scripts, workers, fonts and connections. Inline styles remain permitted for the board and other dynamic UI styling. No secrets, environment keys or application server are needed.
+
+### GitHub Pages
+
+1. Push the project to a repository with a `main` branch.
+2. In repository **Settings → Pages**, select **GitHub Actions** as the source.
+3. Run the included workflow, or push to `main`.
+
+`.github/workflows/deploy.yml` uses Node.js 24, runs a clean installation, both TypeScript checks, tests and the production build, then publishes `dist/`. Actions use fixed release commits; Pages write and OIDC permissions are limited to the deploy job. The workflow still needs to run in your own repository; local checks do not constitute a deployment to your account.
+
+Vite's relative base and hash routing support project paths such as `https://user.github.io/checkmate/#/learn`. The app does not need server-side route rewrites. Other static hosts can publish the same `dist/` directory over HTTPS.
+
+## Implementation and checks
+
+The rules engine uses a 0x88 board, legal move generation, incremental piece-square evaluation, make/unmake, history and dual 32-bit Zobrist keys. Search uses iterative deepening negamax, alpha-beta/PVS, a transposition table with mate-distance handling, guarded null moves, late-move reductions, check extensions, killer/history ordering and quiescence search. There is no embedded external chess engine.
+
+Search and analysis normally run in an ES-module worker. Requests support cancellation, progress and a watchdog. If workers are unavailable, a shorter local search keeps basic play usable and is explicitly labelled; its strength and analysis quality can differ. Bulk fallback analysis yields between plies, but individual searches still briefly occupy the main thread.
+
+```text
+src/chess/         Rules, position state, SAN/PGN and hashing
+src/engine/        Search, evaluation, book and opponent configurations
+src/game/          Controllers, worker client, job ownership and review
+src/education/     Lesson catalogs, course gates, progress and mate proof
+src/multiplayer/   WebRTC connection and validated game protocol
+src/storage/       Persistence, snapshots, backup validation and preferences
+src/components/    Board, dialogs, replay and shared interface
+src/pages/         Application routes and game flows
+src/workers/       Search/analysis and Education proof workers
+public/licenses/   Project, runtime, font and opening-data notices
+scripts/           Build checks and offline data/asset generation tools
+tests/             Rules, engine, data, review, storage and lifecycle tests
 ```
 
-## GitHub Pages Deployment
+```sh
+npm run typecheck   # Application and test/tool TypeScript projects
+npm test            # 817 tests across 19 files in this revision
+npm run build       # TypeScript, Vite and deployment/offline validation
+npm audit           # Known dependency advisories; not a complete security review
+npm run bench       # Local engine benchmark
+```
 
-The build uses relative asset paths and **hash routing** (`/#/bots`), so it works identically at a repository subpath (`user.github.io/repo/`), a user site, or any static host — no 404.html fallback or base-path injection needed.
+The test suite covers perft, position/history/hash invariants, SAN/PGN, variant endings, engine request cancellation and fallback, puzzle/lesson data, mate proofs, sequential course gates, review calculations, backup rollback, session recovery and offline scope behaviour. The release was also exercised in Chromium for course completion, all mating lessons, the eight-round Elo flow, board interactions, P2P rematches/disconnects, stacked dialogs, responsive layouts and root/nested offline updates. Automated accessibility checks cover tested screens; they are not a claim of universal accessibility or browser compatibility.
 
-A ready-made workflow lives in `.github/workflows/deploy.yml`: on every push to `main` it runs the test suite, builds, and publishes `dist/` to GitHub Pages. Enable Pages with the "GitHub Actions" source in the repository settings once.
+`npm run gen:puzzles` and `npm run gen:elo` are optional, potentially expensive offline authoring tools that overwrite their datasets. They are not needed to run or build the app. Re-run integrity tests after regeneration. The optional social-card generator under `scripts/og/` needs Playwright installed separately; the generated card is already bundled.
 
-## Browser Support
+## Licences and attribution
 
-Expected to work in current Chrome, Edge, Firefox, and Safari (desktop and mobile), which provide the required Web Workers, Web Audio, IndexedDB, and Cache Storage. Multiplayer additionally requires WebRTC data channels. The engine falls back to the main thread if workers are unavailable; audio and persistence degrade silently if blocked.
+The existing project **[MIT licence](LICENSE)** is retained. It does not replace the licences for dependencies, fonts or reference data.
 
-## Accessibility
+- **Runtime packages:** complete MIT notices for React, React DOM, Scheduler, React Router, React Router DOM, cookie, set-cookie-parser, loose-envify and js-tokens are in [`public/licenses/third-party.txt`](public/licenses/third-party.txt). Development dependencies retain their own npm-package notices.
+- **Fonts:** self-hosted Latin-subset Inter, Space Grotesk and JetBrains Mono are distributed under SIL OFL 1.1. Full notices and licence texts are in `public/licenses/inter.txt`, `space-grotesk.txt` and `jetbrains-mono.txt`; embedded font copyright notices are preserved. The combined third-party notice also includes their full OFL texts.
+- **Opening references:** added opening names, ECO codes and move orders use the CC0 [lichess-org/chess-openings dataset](https://github.com/lichess-org/chess-openings/tree/712a58be746c143f4ab935b68acc50f4bac813eb), pinned at commit `712a58be746c143f4ab935b68acc50f4bac813eb`. The complete CC0 dedication is in [`public/licenses/opening-data.txt`](public/licenses/opening-data.txt). No opening database is queried at runtime.
 
-- The board is keyboard-playable: arrows move a cursor, `Enter` picks and drops, `Esc` clears.
-- Semantic roles and labels throughout; move and status changes announced to screen readers.
-- Visible focus states, high-contrast mode, reduced-motion mode (plus OS-level detection).
-- No state is communicated by sound or color alone — every cue has a visual equivalent.
-
-## Performance
-
-- The engine never blocks the UI: all search and analysis run in a Web Worker; a depth indicator streams from progress messages.
-- The main-thread engine fallback loads lazily as a separate chunk; the puzzle dataset is a single typed JSON import.
-- Animations use transforms/opacity only; the decorative hero canvas is static under reduced motion and pauses when the tab is hidden.
-- JavaScript chunks total about 142 KB gzipped, excluding the two worker bundles; CSS is about 11 KB gzipped. Three self-hosted woff2 fonts total about 102 KB. The build log reports current sizes.
-
-## Design Philosophy
-
-Dark, quiet, and precise: a near-black surface, ivory text, one gold accent reserved for interaction. Sharp 2/4/8px geometry, hairline borders, monospaced system labels, registration-mark board corners. The aesthetic follows the engineering — an engine room, not a dashboard.
-
-## Limitations
-
-- No global matchmaking or signaling relay: P2P works best on the same machine or LAN; cross-network connections depend on the path between browsers.
-- The Elo number is an experimental local estimate, not a federation rating.
-- No chess clocks, engine analysis graph or exhaustive opening explorer. Education covers selected opening lines and short mating patterns.
-- Variants are engine-searched but not engine-evaluated: the bots see forced hill races and third checks within the search horizon, but the static evaluation carries no variant-specific terms. P2P games are standard chess only.
-- Bots are honest club-level opponents, not grandmaster-strength by any absolute measure.
-
-## Future Improvements
-
-- A signaling relay option for internet-wide P2P.
-- Evaluation graph in game review.
-- Puzzle rating (Glicko-style) per player.
-
-## License
-
-[MIT](LICENSE) © 2026
+Project and third-party notices are included in the deployed site, linked from Settings, and cached for offline access. This documentation and the repository checks are not legal clearance, a trademark search, or a guarantee that software has no defects.

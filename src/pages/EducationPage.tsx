@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ActionButton';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Board } from '../components/Board';
@@ -5,22 +6,26 @@ import type { BoardAnimate, Orientation } from '../components/Board';
 import { IconFlip } from '../components/icons';
 import { Position } from '../chess/position';
 import {
-  WHITE, colorOf, decodeMove, encodeMoveObj, fromAlgebraic, moveToUci,
+  WHITE, FLAG_EN_PASSANT, colorOf, decodeMove, encodeMoveObj, fromAlgebraic, moveToUci,
 } from '../chess/constants';
 import type { PieceType } from '../chess/constants';
 import { moveSoundName, sound } from '../audio/sound';
 import { useSettings } from '../storage/settings';
+import { useRegisterCommands } from '../game/commands';
 import { useHotkeys } from '../game/hooks';
-import { educationRepo, dbAvailable } from '../storage/db';
+import { educationRepo, dbAvailable, dataRevision } from '../storage/db';
 import { LESSONS, lessonById } from '../education/lessons';
 import type { Lesson, LessonKind, LessonSide, LessonStage } from '../education/lessons';
-import { lessonNotation, lessonPosition, openingMoveMatches, sanForUci } from '../education/position';
+import { lessonMoveSide, lessonMoveNumber, lessonNotation, lessonPosition, openingMoveMatches, sanForUci } from '../education/position';
 import { reviewLabel } from '../education/progress';
 import type { LessonProgress } from '../education/progress';
+import { courseLevels, levelLockReason, courseLink, courseRecommendation, lessonAccessible, topicCompleted, topicRecalled } from '../education/courses';
+import type { CourseLevel } from '../education/courses';
 import { MateClient } from '../education/mateClient';
 
 const STAGES: LessonStage[] = ['study', 'practice', 'recall'];
 type RecordCompletion = (lessonId: string, stage: LessonStage, clean: boolean) => Promise<LessonProgress>;
+const searchText = (text: string): string => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[–—-]/g, ' ').replace(/[’']/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 export function EducationPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -28,16 +33,21 @@ export function EducationPage() {
   const [loaded, setLoaded] = useState(false);
   const [persistent, setPersistent] = useState(true);
   const alive = useRef(true);
+  const revision = useRef(dataRevision());
   useEffect(() => {
     alive.current = true;
-    void Promise.all([educationRepo.all(), dbAvailable()]).then(([rows, available]) => {
+    void educationRepo.all().then(async (rows) => {
+      const available = await dbAvailable();
       if (alive.current) { setProgress(rows); setLoaded(true); setPersistent(available); }
+    }).catch(() => {
+      if (alive.current) { setLoaded(true); setPersistent(false); }
     });
     return () => { alive.current = false; };
   }, []);
   const record = useCallback<RecordCompletion>(async (id, stage, clean) => {
-    const row = await educationRepo.record(id, stage, clean);
-    if (alive.current) setProgress((rows) => [...rows.filter((item) => item.lessonId !== id), row]);
+    const row = await educationRepo.record(id, stage, clean, revision.current);
+    const available = await dbAvailable();
+    if (alive.current) { setProgress((rows) => [...rows.filter((item) => item.lessonId !== id), row]); setPersistent(available); }
     return row;
   }, []);
   const lesson = lessonId ? lessonById(lessonId) : undefined;
@@ -46,21 +56,57 @@ export function EducationPage() {
     <div className="page learn-page">
       <div className="container">
         {!persistent && <p className="learn-storage-warning" role="status">Saving is unavailable. Lesson progress lasts for this session only.</p>}
-        {lessonId ? lesson ? (
-          <LessonView key={lesson.id} lesson={lesson} progress={progress.find((row) => row.lessonId === lesson.id)} onComplete={record} />
+        {!loaded ? <p className="muted" role="status">Loading your course…</p> : lessonId ? lesson ? (
+          lessonAccessible(lesson, progress)
+            ? <LessonView key={lesson.id} lesson={lesson} progress={progress} onComplete={record} />
+            : <LockedLesson lesson={lesson} progress={progress} />
         ) : (
           <div className="empty">
             <h1 className="empty-title">Lesson not found</h1>
             <p className="muted">Choose an opening or a mating pattern from the library.</p>
             <Link to="/learn" className="btn btn-primary mt-16">Lesson library</Link>
           </div>
-        ) : <LessonLibrary progress={progress} loaded={loaded} />}
+        ) : <LessonLibrary progress={progress} />}
       </div>
     </div>
   );
 }
 
-function LessonLibrary({ progress, loaded }: { progress: LessonProgress[]; loaded: boolean }) {
+function LockedLesson({ lesson, progress }: { lesson: Lesson; progress: LessonProgress[] }) {
+  const levels = courseLevels(lesson.kind, progress);
+  const current = levels.find((level) => level.unlocked && !level.cleared)!;
+  return (
+    <section className="learn-locked panel" aria-labelledby="locked-lesson-title">
+      <span className="learn-step-label">{lesson.kind === 'opening' ? 'Opening course' : 'Checkmate course'} · Level {lesson.courseLevel}</span>
+      <h1 id="locked-lesson-title" className="page-title">This level is locked.</h1>
+      <p><strong>{lesson.title}</strong> belongs to Level {lesson.courseLevel}. Clear Level {current.number} first, then work forward one level at a time.</p>
+      <LevelProgress level={current} />
+      <Link className="btn btn-primary" to={courseLink(lesson.kind, current.number)}>Continue Level {current.number} →</Link>
+      <Link className="learn-back" to={courseLink(lesson.kind, current.number)}>← Lesson library</Link>
+    </section>
+  );
+}
+
+function LevelProgress({ level, compact = false }: { level: CourseLevel; compact?: boolean }) {
+  return (
+    <div className={`learn-level-progress${compact ? ' compact' : ''}`} aria-label={`Level ${level.number} requirements`}>
+      <div className="learn-level-counts">
+        {([
+          [level.completed, level.completionTarget, 'Topics completed'],
+          [level.recalled, level.recallTarget, 'Unaided recalls'],
+        ] as const).map(([value, target, label]) => (
+          <div key={label}>
+            <div className="spread"><span><strong>{value} / {level.lessons.length}</strong> {label}</span><small>{target} needed {value >= target ? '✓' : ''}</small></div>
+            <div className="learn-meter" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={target} aria-valuenow={Math.min(value, target)} aria-valuetext={`${value} of ${level.lessons.length}; ${target} required`}><span style={{ width: `${Math.min(100, 100 * value / Math.max(1, target))}%` }} /></div>
+          </div>
+        ))}
+      </div>
+      {!compact && <p>Practice completes a topic. To clear this level, complete <strong>{level.completionTarget} different topics</strong> and finish an unaided Recall on <strong>{level.recallTarget} of those topics</strong>. Unaided means no hints and no retries. Repeats do not add extra topic credit.</p>}
+    </div>
+  );
+}
+
+function LessonLibrary({ progress }: { progress: LessonProgress[] }) {
   const [params, setParams] = useSearchParams();
   const category: LessonKind = params.get('category') === 'checkmate' ? 'checkmate' : 'opening';
   const [query, setQuery] = useState('');
@@ -70,120 +116,116 @@ function LessonLibrary({ progress, loaded }: { progress: LessonProgress[]; loade
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
-  const known = progress.filter((row) => lessonById(row.lessonId));
-  const due = known.filter((row) => row.dueAt !== null && row.dueAt <= now).sort((a, b) => a.dueAt! - b.dueAt!);
-  const recent = [...known].sort((a, b) => b.lastPlayedAt - a.lastPlayedAt)[0];
-  const recommended = due[0] ? lessonById(due[0].lessonId) : recent
-    ? lessonById(recent.lessonId) : LESSONS[0];
-  const rows = LESSONS.filter((lesson) => {
-    const row = known.find((entry) => entry.lessonId === lesson.id);
-    return lesson.kind === category
-      && (!onlyDue || (row?.dueAt !== undefined && row.dueAt !== null && row.dueAt <= now))
-      && `${lesson.title} ${lesson.summary} ${lesson.level}`.toLowerCase().includes(query.toLowerCase().trim());
-  });
+  const courses = useMemo(() => ({ opening: courseLevels('opening', progress), checkmate: courseLevels('checkmate', progress) }), [progress]);
+  const levels = courses[category];
+  const requestedLevel = Number(params.get('level'));
+  const currentLevel = levels.find((level) => level.unlocked && !level.cleared) ?? levels[levels.length - 1]!;
+  const selected = Number.isInteger(requestedLevel) && requestedLevel >= 1 && requestedLevel <= levels.length ? levels[requestedLevel - 1]! : currentLevel;
+  const records = new Map(progress.filter((row) => lessonById(row.lessonId)).map((row) => [row.lessonId, row]));
+  const known = [...records.values()];
+  const accessible = (lesson: Lesson) => courses[lesson.kind][lesson.courseLevel - 1]!.unlocked;
+  const due = known.filter((row) => row.dueAt !== null && row.dueAt <= now && accessible(lessonById(row.lessonId)!)).sort((a, b) => a.dueAt! - b.dueAt!);
+  const dueHere = due.find((row) => lessonById(row.lessonId)!.kind === category);
+  const recommendation = dueHere ? { lesson: lessonById(dueHere.lessonId)!, stage: 'recall' as const } : courseRecommendation(category, progress);
+  const needle = searchText(query);
+  const rows = LESSONS.filter((lesson) => lesson.kind === category
+    && (needle ? searchText(`${lesson.title} ${lesson.summary} ${lesson.topic ?? ''} ${lesson.eco ?? ''} level ${lesson.courseLevel}`).includes(needle) : lesson.courseLevel === selected.number)
+    && (!onlyDue || (accessible(lesson) && (records.get(lesson.id)?.dueAt ?? Infinity) <= now)));
+  const chooseLevel = (level: number, kind = category) => {
+    setParams({ category: kind, level: String(level) }, { replace: true }); setQuery(''); setOnlyDue(false);
+  };
+  const changeCategory = (kind: LessonKind) => chooseLevel(courses[kind].find((level) => level.unlocked && !level.cleared)?.number ?? levels.length, kind);
   return (
     <>
       <div className="page-head">
         <div>
           <div className="eyebrow">Education</div>
           <h1 className="page-title">Learn the idea. Play it back.</h1>
-          <p className="page-sub">Short lessons on openings and checkmates. Study a few moves, try them yourself, then return to see what stuck.</p>
+          <p className="page-sub">Openings and mating patterns, one level at a time. Study the idea, complete the topic, then prove what you remember.</p>
         </div>
-        <span className="chip">18 lessons · offline</span>
+        <span className="chip">{LESSONS.length} lessons · offline</span>
       </div>
       <section className="learn-intro panel" aria-label="Learning path">
         <div className="learn-path">
           <div><span>01</span><h2>Study</h2><p>See each move and why it works.</p></div>
-          <div><span>02</span><h2>Practice</h2><p>Play the position. Ask for a hint.</p></div>
-          <div><span>03</span><h2>Recall</h2><p>Try without prompts. Review later.</p></div>
+          <div><span>02</span><h2>Practice</h2><p>Play the line. Complete the topic.</p></div>
+          <div><span>03</span><h2>Recall</h2><p>Remember it unaided. Unlock more.</p></div>
         </div>
         <div className="learn-record" aria-live="polite">
-          <div><strong>{loaded ? known.filter((row) => row.studied).length : '—'}</strong><span>Studied</span></div>
-          <div><strong>{loaded ? known.filter((row) => row.cleanRecalls > 0).length : '—'}</strong><span>Recalled</span></div>
-          <div><strong>{loaded ? due.length : '—'}</strong><span>Due now</span></div>
+          <div><strong>{known.filter(topicCompleted).length}</strong><span>Completed</span></div>
+          <div><strong>{known.filter(topicRecalled).length}</strong><span>Recalled</span></div>
+          <div><strong>{due.length}</strong><span>Due now</span></div>
         </div>
       </section>
-      {loaded && recommended && (
+      {recommendation && (
         <div className="learn-resume">
-          <div><span className="tiny mono faint">{due.length ? 'READY TO REVIEW' : recent ? 'YOUR LAST LESSON' : 'A GOOD FIRST LESSON'}</span><h2>{recommended.title}</h2></div>
-          <Link className="btn btn-primary btn-sm" to={`/learn/${recommended.id}${due.length ? '?stage=recall' : (recent?.practices || recent?.recalls) ? '?stage=recall' : recent?.studied ? '?stage=practice' : ''}`}>
-            {due.length ? 'Review now' : recent ? 'Continue lesson' : 'Start learning'} →
-          </Link>
+          <div><span className="tiny mono faint">{dueHere ? 'READY TO REVIEW' : 'NEXT IN YOUR COURSE'} · LEVEL {recommendation.lesson.courseLevel}</span><h2>{recommendation.lesson.title}</h2></div>
+          <Link className="btn btn-primary btn-sm" to={`/learn/${recommendation.lesson.id}?stage=${recommendation.stage}`}>{dueHere ? 'Review now' : known.length ? 'Continue learning' : 'Start learning'} →</Link>
         </div>
       )}
       <div className="learn-library-tools">
         <div className="learn-category" role="group" aria-label="Lesson category">
-          <button className="btn" aria-pressed={category === 'opening'} onClick={() => { setParams({ category: 'opening' }, { replace: true }); setOnlyDue(false); }}>Openings <span>10</span></button>
-          <button className="btn" aria-pressed={category === 'checkmate'} onClick={() => { setParams({ category: 'checkmate' }, { replace: true }); setOnlyDue(false); }}>Checkmates <span>8</span></button>
+          {(['opening', 'checkmate'] as const).map((kind) => <button key={kind} className="btn" aria-pressed={category === kind} onClick={() => changeCategory(kind)}>{kind === 'opening' ? 'Openings' : 'Checkmates'} <span>{LESSONS.filter((lesson) => lesson.kind === kind).length}</span></button>)}
         </div>
         <div className="learn-filters">
-          <input className="input" type="search" aria-label="Search lessons" placeholder="Find a lesson" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input className="input" type="search" aria-label="Search lessons" placeholder="Search all 10 levels" value={query} onChange={(event) => setQuery(event.target.value)} />
           <button className="btn btn-sm" aria-pressed={onlyDue} onClick={() => setOnlyDue((value) => !value)}>Due only</button>
         </div>
       </div>
+      <nav className="learn-level-nav" aria-label="Course levels" tabIndex={0}>
+        {levels.map((level) => <ActionButton key={level.number} className={selected.number === level.number ? 'active' : ''} aria-pressed={selected.number === level.number} blockedReason={levelLockReason(levels, level.number)} aria-label={`Level ${level.number}: ${level.title}. ${level.cleared ? 'Cleared' : level.unlocked ? 'Unlocked' : 'Locked'}`} onClick={() => chooseLevel(level.number)}><span>Level {String(level.number).padStart(2, '0')}</span><strong>{level.title}</strong><small>{level.cleared ? '✓ Cleared' : level.unlocked ? 'Unlocked' : 'Locked'}</small></ActionButton>)}
+      </nav>
+      <section className={`learn-level panel${selected.cleared ? ' is-cleared' : ''}`} aria-label={`Level ${selected.number} overview`}>
+        <div className="spread learn-level-title"><div><span className="learn-step-label">{category === 'opening' ? 'Opening course' : 'Checkmate course'} · Level {selected.number} of {levels.length}</span><h2>{selected.title}</h2><p>{selected.description}</p></div><span className={`learn-badge${selected.cleared ? ' done' : ''}`}>{selected.cleared ? '✓ Level cleared' : selected.unlocked ? selected.completed || selected.recalled ? 'In progress' : 'Ready to start' : 'Locked'}</span></div>
+        {selected.unlocked ? <><LevelProgress level={selected} />{selected.cleared && <p className="learn-level-unlocked">{selected.number < levels.length ? `Level ${selected.number + 1} is unlocked. You can still finish or review every topic here.` : 'Course cleared. Any remaining topics and every review stay available.'}</p>}</> : <div className="learn-level-lock"><p>Clear Level {currentLevel.number} first. Each level opens only after the previous one is cleared.</p><button className="btn btn-sm" onClick={() => chooseLevel(currentLevel.number)}>Continue Level {currentLevel.number} →</button></div>}
+      </section>
       <details className="learn-primer">
         <summary>{category === 'opening' ? 'New to openings? Start with three ideas.' : 'What makes a position checkmate?'}</summary>
-        {category === 'opening' ? (
-          <p>Control the centre, develop your knights and bishops, and get your king safe. These lessons teach one common line, not every possible response. Remember the reason for a move rather than treating it as a rule for every game.</p>
-        ) : (
-          <p>The king must be in check, with no legal way to escape, capture the attacker or block the check. If the king is not in check and its side has no legal move, that is stalemate: a draw. In the exercises, any move that forces mate within the goal is accepted.</p>
-        )}
+        {category === 'opening' ? <p>Control the centre, develop your knights and bishops, and get your king safe. These lessons teach selected lines, not every possible response. Remember the reason for a move rather than treating it as a rule for every game.</p> : <p>The king must be in check, with no legal escape, capture or blocking defence. A king with no legal move and no check is stalemated: a draw. Any move that forces mate within the exercise’s goal counts. Pattern variations let you practise from changed positions and from the other colour.</p>}
       </details>
+      {needle && <p className="learn-search-count small muted">{rows.length} {rows.length === 1 ? 'match' : 'matches'} across all {levels.length} levels. Locked topics become playable as you progress.</p>}
       <div className="learn-grid" aria-label={category === 'opening' ? 'Opening lessons' : 'Checkmate lessons'}>
         {rows.map((lesson) => {
-          const row = known.find((entry) => entry.lessonId === lesson.id);
-          const isDue = row?.dueAt !== undefined && row.dueAt !== null && row.dueAt <= now;
-          const status = isDue ? 'Review due' : row?.cleanRecalls ? 'Recalled' : row?.practices ? 'Practised' : row?.studied ? 'Studied' : 'New';
-          return (
-            <Link to={`/learn/${lesson.id}`} key={lesson.id} className="learn-card">
-              <div className="spread"><span className="tiny mono faint">{lesson.level}</span><span className={`learn-badge${isDue ? ' due' : row?.cleanRecalls ? ' done' : ''}`}>{status}</span></div>
-              <h2>{lesson.title}</h2>
-              <p>{lesson.summary}</p>
-              <div className="learn-card-meta"><span>{lesson.kind === 'opening' ? `${lesson.steps.length / 2} moves · ${lesson.side}` : `Mate in ${lesson.mateIn}`}</span><span>Study & play →</span></div>
-              <div className="learn-card-progress" aria-label={`${row?.studied ? 'Studied' : 'Not yet studied'}, ${row?.practices ? 'practised' : 'not yet practised'}, ${row?.cleanRecalls ? 'recalled without help' : 'not yet recalled without help'}`}>
-                <span className={row?.studied ? 'done' : ''} /><span className={row?.practices ? 'done' : ''} /><span className={row?.cleanRecalls ? 'done' : ''} />
-              </div>
-            </Link>
-          );
+          const row = records.get(lesson.id), unlocked = accessible(lesson), completed = topicCompleted(row);
+          const isDue = unlocked && row?.dueAt !== undefined && row.dueAt !== null && row.dueAt <= now;
+          const status = !unlocked ? 'Locked' : completed ? '✓ Completed' : row?.cleanRecalls ? 'Recall logged' : row?.studied ? 'Studied' : row?.recalls ? 'In progress' : 'New';
+          const content = <>
+            <div className="spread"><span className="tiny mono faint">Level {lesson.courseLevel}{lesson.eco ? ` · ${lesson.eco}` : ''}</span><span className={`learn-badge${completed && unlocked ? ' done' : ''}`}>{status}</span></div>
+            <h2>{lesson.title}</h2><p>{lesson.summary}</p>
+            <div className="learn-card-meta"><span>{lesson.kind === 'opening' ? `${Math.ceil(lesson.steps.length / 2)} moves · either colour` : `Mate in ${lesson.mateIn} · ${lesson.side}`}</span><span>{!unlocked ? `Unlock Level ${lesson.courseLevel}` : isDue ? 'Review due' : row?.cleanRecalls ? 'Recalled unaided' : 'Study → Practice → Recall'}</span></div>
+            <div className="learn-card-progress" role="img" aria-label={`Study ${row?.studied ? 'completed' : 'not completed'}, Practice ${completed ? 'completed' : 'not completed'}, Recall ${row?.cleanRecalls ? 'unaided' : 'not yet unaided'}`}><span className={row?.studied ? 'done' : ''} /><span className={completed ? 'done' : ''} /><span className={row?.cleanRecalls ? 'done' : ''} /></div>
+          </>;
+          const className = `learn-card${completed ? ' is-complete' : ''}${unlocked ? '' : ' is-locked'}`;
+          return unlocked ? <Link to={`/learn/${lesson.id}`} key={lesson.id} className={className}>{content}</Link> : <article key={lesson.id} className={className}>{content}<ActionButton className="learn-locked-action" blockedReason={levelLockReason(courses[lesson.kind], lesson.courseLevel)} aria-label={`Why ${lesson.title} is locked`} /></article>;
         })}
       </div>
-      {rows.length === 0 && <div className="empty"><h2 className="empty-title">{onlyDue ? 'No reviews due in this category' : 'No matching lessons'}</h2><p className="small muted">{onlyDue ? 'You can still rehearse any lesson whenever you like.' : 'Try another name, or clear the search.'}</p><button className="btn btn-sm mt-16" onClick={() => { setOnlyDue(false); setQuery(''); }}>Show all lessons</button></div>}
-      <details className="learn-primer learn-notation-key">
-        <summary>Reading the moves</summary>
-        <p>K = king, Q = queen, R = rook, B = bishop, N = knight. A pawn uses just its destination, such as e4. × or x means capture, + means check, # means checkmate, and O-O means kingside castling. You can tap a move in Study to see its position; no notation knowledge is needed to play.</p>
-      </details>
-      <p className="tiny muted learn-storage-note">Progress stays in this browser and is included in Settings → Export data. Recall reviews space out to 1, 3, 7, 14 and 30 days; asking for help schedules a short retry instead.</p>
+      {rows.length === 0 && <div className="empty"><h2 className="empty-title">{onlyDue ? 'No reviews due here' : 'No matching lessons'}</h2><p className="small muted">{onlyDue ? 'You can still rehearse an unlocked topic whenever you like.' : 'Try an opening name, a mating pattern or an ECO code.'}</p><button className="btn btn-sm mt-16" onClick={() => { setOnlyDue(false); setQuery(''); }}>Clear filters</button></div>}
+      <details className="learn-primer learn-notation-key"><summary>Reading the moves</summary><p>K = king, Q = queen, R = rook, B = bishop, N = knight. A pawn uses just its destination, such as e4. x means capture, + means check, # means checkmate, O-O means kingside castling, and O-O-O means queenside castling. Tap a move in Study to see its position; no notation knowledge is needed to play.</p></details>
+      <p className="tiny muted learn-storage-note">Progress stays in this browser and travels with Settings → Export data. Each track unlocks independently. A later assisted review does not remove an earned unlock. Recall reviews space out to 1, 3, 7, 14 and 30 days; help schedules a short retry.</p>
     </>
   );
 }
 
-function LessonView({ lesson, progress, onComplete }: { lesson: Lesson; progress?: LessonProgress; onComplete: RecordCompletion }) {
+function LessonView({ lesson, progress, onComplete }: { lesson: Lesson; progress: LessonProgress[]; onComplete: RecordCompletion }) {
   const [params, setParams] = useSearchParams();
   const rawStage = params.get('stage');
   const stage: LessonStage = rawStage === 'practice' || rawStage === 'recall' ? rawStage : 'study';
   const [side, setSide] = useState<LessonSide>(lesson.side);
   const [run, setRun] = useState(0);
+  const row = progress.find((entry) => entry.lessonId === lesson.id);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [stage]);
   const setStage = (next: LessonStage) => { sound.play('uiTick'); setParams({ stage: next }, { replace: true }); };
-  const nextLesson = LESSONS[LESSONS.indexOf(lesson) + 1];
   return (
     <>
-      <div className="learn-lesson-head">
-        <Link to={`/learn?category=${lesson.kind}`} className="learn-back">← Lesson library</Link>
-        <span className="tiny muted">{progress ? reviewLabel(progress.dueAt) : lesson.level}</span>
-      </div>
+      <div className="learn-lesson-head"><Link to={courseLink(lesson.kind, lesson.courseLevel)} className="learn-back">← Lesson library</Link><span className="tiny muted">{row ? reviewLabel(row.dueAt) : `Level ${lesson.courseLevel}`}</span></div>
       <div className="page-head learn-heading">
-        <div className="learn-title-block"><Link to={`/learn?category=${lesson.kind}`} className="learn-compact-back" aria-label="Back to lesson library">←</Link><div><div className="eyebrow">{lesson.kind === 'opening' ? 'Opening' : 'Mating pattern'}</div><h1 ref={heading} tabIndex={-1} className="page-title">{lesson.title}</h1></div></div>
+        <div className="learn-title-block"><Link to={courseLink(lesson.kind, lesson.courseLevel)} className="learn-compact-back" aria-label="Back to lesson library">←</Link><div><div className="eyebrow">{lesson.kind === 'opening' ? 'Opening' : 'Mating pattern'} · Level {lesson.courseLevel}{topicCompleted(row) ? ' · ✓ Topic completed' : ''}</div><h1 ref={heading} tabIndex={-1} className="page-title">{lesson.title}</h1></div></div>
         <div className="learn-stages" role="group" aria-label="Lesson stage">
-          {STAGES.map((item, index) => <button key={item} className="btn btn-sm" aria-pressed={item === stage} onClick={() => setStage(item)}><span aria-hidden="true">0{index + 1}</span>{item}</button>)}
+          {STAGES.map((item, index) => <button key={item} className="btn btn-sm" aria-pressed={item === stage} onClick={() => setStage(item)}><span aria-hidden="true">0{index + 1}</span>{item}{(item === 'study' ? row?.studied : item === 'practice' ? topicCompleted(row) : (row?.cleanRecalls ?? 0) > 0) ? <span className="learn-stage-done" aria-label="completed">✓</span> : null}</button>)}
         </div>
       </div>
-      {stage === 'study' ? (
-        <StudySession key={`${lesson.id}-study-${run}`} lesson={lesson} onComplete={onComplete} onPractice={() => setStage('practice')} />
-      ) : (
-        <PracticeSession key={`${lesson.id}-${stage}-${side}-${run}`} lesson={lesson} side={side} stage={stage} onComplete={onComplete} onRestart={() => setRun((value) => value + 1)} onStudy={() => setStage('study')} onRecall={() => setStage('recall')} nextLesson={nextLesson} onSideChange={setSide} />
-      )}
+      {stage === 'study' ? <StudySession key={`${lesson.id}-study-${run}`} lesson={lesson} onComplete={onComplete} onPractice={() => setStage('practice')} /> : <PracticeSession key={`${lesson.id}-${stage}-${side}-${run}`} lesson={lesson} side={side} stage={stage} progress={progress} onComplete={onComplete} onRestart={() => setRun((value) => value + 1)} onStudy={() => setStage('study')} onPractice={() => setStage('practice')} onRecall={() => setStage('recall')} onSideChange={setSide} />}
     </>
   );
 }
@@ -198,6 +240,7 @@ function LessonBoard({
 }) {
   const { settings } = useSettings();
   useHotkeys({ f: () => { sound.play('uiTick'); onFlip(); } });
+  useRegisterCommands([{ id: 'board-flip', label: 'Flip Board', group: 'Education', hint: 'F', run: onFlip }]);
   const highlighted = hintUci ?? lastUci;
   return (
     <>
@@ -208,7 +251,7 @@ function LessonBoard({
           onMove={onMove ?? (() => false)} onIllegal={() => sound.play('illegal')}
           lastMove={highlighted ? { from: fromAlgebraic(highlighted.slice(0, 2)), to: fromAlgebraic(highlighted.slice(2, 4)) } : null}
           checkSquare={position.inCheck() ? position.kingSquare(position.stm) : null}
-          animate={animate} settings={settings} label={`Lesson board. ${status}.`} />
+          animate={animate} settings={{ ...settings, autoQueen: false }} label={`Lesson board. ${status}.`} />
         <div className="board-status">
           <span className={`turn-indicator${interactive ? ' active' : ''}`}><span className={`turn-dot ${position.stm === WHITE ? 'white' : 'black'}`} />{status}</span>
           <button className="tool-btn" onClick={() => { sound.play('uiTick'); onFlip(); }} aria-label="Flip lesson board"><IconFlip size={15} /></button>
@@ -253,9 +296,9 @@ function StudySession({ lesson, onComplete, onPractice }: { lesson: Lesson; onCo
   };
   const controls = (
 <div className="learn-playback" role="group" aria-label="Study controls">
-          <button className="btn btn-sm" disabled={ply === 0} onClick={() => jump(ply - 1)} aria-label="Previous move">← Back</button>
+          <ActionButton className="btn btn-sm" blockedReason={ply === 0 && 'You are at the starting position. Press Next or Play line to see the first move.'} onClick={() => jump(ply - 1)} aria-label="Previous move">← Back</ActionButton>
           <button className="btn btn-sm" aria-pressed={playing} onClick={() => { sound.unlock(); if (ply === total) { setPly(0); setAnimate(null); } setPlaying((value) => !value); }}>{playing ? 'Pause' : 'Play line'}</button>
-          <button className="btn btn-sm" disabled={ply === total} onClick={() => jump(ply + 1)} aria-label="Next move">Next →</button>
+          <ActionButton className="btn btn-sm" blockedReason={ply === total && 'The demonstration is complete. Choose Practice, or Play line to watch it again.'} onClick={() => jump(ply + 1)} aria-label="Next move">Next →</ActionButton>
         </div>
   );
   return (
@@ -269,25 +312,25 @@ function StudySession({ lesson, onComplete, onPractice }: { lesson: Lesson; onCo
       <div className="learn-reading">
         <div className="learn-landscape-tools">{controls}</div>
         <div className="learn-step-card panel" aria-live="polite" aria-atomic="true">
-          <div className="learn-step-label">{ply === 0 ? 'The starting idea' : `${ply % 2 ? 'White' : 'Black'} played`}</div>
+          <div className="learn-step-label">{ply === 0 ? 'The starting idea' : `${lessonMoveSide(lesson, ply - 1)} played`}</div>
           {ply > 0 && <div className="learn-san">{notation[ply - 1]}</div>}
           <p>{ply === 0 ? lesson.summary : lesson.steps[ply - 1]!.note}</p>
         </div>
         <MemoryCue text={lesson.remember} />
         <div className="learn-move-strip" role="group" aria-label="Demonstration moves">
           <button className={ply === 0 ? 'active' : ''} aria-pressed={ply === 0} onClick={() => jump(0)}>Start</button>
-          {notation.map((san, index) => <button key={index} className={ply === index + 1 ? 'active' : ''} aria-pressed={ply === index + 1} onClick={() => jump(index + 1)} aria-label={`Jump to ${index % 2 ? 'Black' : 'White'} move ${Math.floor(index / 2) + 1}: ${san}`}><span>{index % 2 === 0 ? `${Math.floor(index / 2) + 1}.` : ''}</span>{san}</button>)}
+          {notation.map((san, index) => <button key={index} className={ply === index + 1 ? 'active' : ''} aria-pressed={ply === index + 1} onClick={() => jump(index + 1)} aria-label={`Jump to ${lessonMoveSide(lesson, index)} move ${lessonMoveNumber(lesson, index)}: ${san}`}><span>{lessonMoveSide(lesson, index) === 'white' ? `${lessonMoveNumber(lesson, index)}.` : index === 0 ? `${lessonMoveNumber(lesson, index)}...` : ''}</span>{san}</button>)}
         </div>
         <LessonNotes lesson={lesson} />
-        <div className="learn-ready"><p className="small muted">{ply === total ? 'Seen the idea? Make the moves yourself.' : 'You can start practising whenever you are ready.'}</p><button className="btn btn-primary btn-block" onClick={onPractice}>Practice on the board →</button></div>
+        <div className="learn-ready"><p className="small muted">{ply === total ? 'Study completed. Finish Practice to mark this topic completed.' : 'You can start practising whenever you are ready.'}</p><button className="btn btn-primary btn-block" onClick={onPractice}>Practice on the board →</button></div>
       </div>
     </div>
   );
 }
 
-function PracticeSession({ lesson, side, stage, onComplete, onRestart, onStudy, onRecall, nextLesson, onSideChange }: {
-  lesson: Lesson; side: LessonSide; stage: 'practice' | 'recall'; onComplete: RecordCompletion;
-  onRestart: () => void; onStudy: () => void; onRecall: () => void; nextLesson?: Lesson; onSideChange: (side: LessonSide) => void;
+function PracticeSession({ lesson, side, stage, progress, onComplete, onRestart, onStudy, onPractice, onRecall, onSideChange }: {
+  lesson: Lesson; side: LessonSide; stage: 'practice' | 'recall'; progress: LessonProgress[]; onComplete: RecordCompletion;
+  onRestart: () => void; onStudy: () => void; onPractice: () => void; onRecall: () => void; onSideChange: (side: LessonSide) => void;
 }) {
   const { settings } = useSettings();
   const [history, setHistory] = useState<string[]>([]);
@@ -302,6 +345,13 @@ function PracticeSession({ lesson, side, stage, onComplete, onRestart, onStudy, 
   const [done, setDone] = useState(false);
   const [pendingReply, setPendingReply] = useState<string>();
   const [saved, setSaved] = useState<LessonProgress>();
+  const [saveFailed, setSaveFailed] = useState(false);
+  const levels = useMemo(() => courseLevels(lesson.kind, progress), [lesson.kind, progress]);
+  const level = levels[lesson.courseLevel - 1]!;
+  const wasCleared = useRef(level.cleared);
+  const newlyCleared = done && !!saved && level.cleared && !wasCleared.current;
+  const completed = stage === 'practice' || topicCompleted(progress.find((row) => row.lessonId === lesson.id));
+  const next = courseRecommendation(lesson.kind, progress, lesson.id);
   const lock = useRef(false);
   const alive = useRef(true);
   const recorded = useRef(false);
@@ -330,7 +380,7 @@ function PracticeSession({ lesson, side, stage, onComplete, onRestart, onStudy, 
     recorded.current = true;
     setDone(true);
     sound.play(isMate ? 'checkmate' : 'solved');
-    void onComplete(lesson.id, stage, clean).then((row) => { if (alive.current) setSaved(row); });
+    void onComplete(lesson.id, stage, clean).then((row) => { if (alive.current) setSaved(row); }).catch(() => { if (alive.current) setSaveFailed(true); });
   }, [onComplete, lesson.id, stage, clean, isMate]);
   const commit = useCallback((uci: string) => {
     setAnimate(settings.animateMoves ? animationFor(position, uci) : null);
@@ -418,7 +468,7 @@ function PracticeSession({ lesson, side, stage, onComplete, onRestart, onStudy, 
 <div className="learn-exercise-tools">
           <span className="tiny mono muted">{isMate ? `${movesPlayed} / ${lesson.mateIn} moves` : `${movesPlayed} / ${totalMoves} moves`}</span>
           <button className="btn btn-sm" onClick={onRestart}>Restart</button>
-          <button className="btn btn-sm" disabled={!interactive || hintLevel >= 2} onClick={() => void showHint()}>{hintLevel === 0 ? 'Hint' : hintLevel === 1 ? 'Show move' : 'Move shown'}</button>
+          <ActionButton className="btn btn-sm" blockedReason={done ? 'This exercise is complete. Restart it to practise again.' : busy ? 'The position is being checked. Wait for verification to finish.' : position.stm !== learner ? 'Wait for the opponent’s reply before asking for a hint.' : hintLevel >= 2 && 'The move is already shown and highlighted on the board. Play it to continue.'} onClick={() => void showHint()}>{hintLevel === 0 ? 'Hint' : hintLevel === 1 ? 'Show move' : 'Move shown'}</ActionButton>
         </div>
   );
   const exerciseFeedback = (
@@ -437,13 +487,19 @@ function PracticeSession({ lesson, side, stage, onComplete, onRestart, onStudy, 
         <div className="learn-landscape-tools">{exerciseTools}{exerciseFeedback}</div>
         {done ? (
           <section className="learn-result panel" aria-label="Lesson complete" aria-live="polite">
-            <span className="learn-step-label">{stage === 'recall' ? 'Recall complete' : 'Practice complete'}</span>
-            <h2>{stage === 'recall' && clean ? 'You remembered it.' : isMate ? 'Checkmate found.' : 'You played the line.'}</h2>
-            <p>{stage === 'practice' ? 'Now hide the prompts and see what you remember.' : clean ? 'No hints and no retries. Give the idea time to settle, then return for a review.' : 'A useful rehearsal. Try it again without help when you are ready.'}</p>
+            <span className="learn-completed-label">{completed ? '✓ Topic completed' : '✓ Recall completed'}</span>
+            <h2>{stage === 'practice' ? `${lesson.title} completed.` : clean ? 'You remembered it unaided.' : 'Recall completed with help.'}</h2>
+            {stage === 'recall' && <p className="learn-result-topic">{lesson.title}</p>}
+            <p>{stage === 'practice' ? 'This topic is now marked Completed in your course. Try Recall without hints or retries to add an unaided recall towards the next level.' : clean ? completed ? 'No hints and no retries. Your unaided recall counts towards this level’s unlock requirement.' : 'No hints and no retries. Finish Practice as well to complete this topic and count its recall towards the level.' : completed ? 'The topic stays completed, but this assisted rehearsal does not add an unaided recall. Try again when you are ready.' : 'This assisted rehearsal does not add an unaided recall. Finish Practice to complete the topic, then try Recall again.'}</p>
             <div className="learn-result-stats"><div><strong>{movesPlayed}</strong><span>Moves</span></div><div><strong>{hints}</strong><span>Hints</span></div><div><strong>{mistakes}</strong><span>Retries</span></div></div>
+            {!saved && !saveFailed && <p className="tiny muted">Saving progress…</p>}
+            {saveFailed && <p className="small danger" role="alert">The attempt finished, but progress could not be saved. Restart the exercise to try saving again.</p>}
             {stage === 'recall' && saved && <p className="learn-schedule">{reviewLabel(saved.dueAt)}</p>}
-            {stage === 'practice' ? <button className="btn btn-primary btn-block" onClick={onRecall}>Recall without prompts →</button> : <button className="btn btn-block" onClick={onRestart}>Recall again</button>}
-            {nextLesson && <Link className="btn btn-sm btn-block" to={`/learn/${nextLesson.id}`}>Next: {nextLesson.title} →</Link>}
+            {newlyCleared && <div className="learn-unlocked" role="status"><strong>✓ Level {level.number} cleared</strong><p>{level.number < levels.length ? `Level ${level.number + 1} is now unlocked.` : `Every level of the ${lesson.kind === 'opening' ? 'opening' : 'checkmate'} course is cleared.`}</p>{level.number < levels.length && <Link className="btn btn-primary btn-sm" to={courseLink(lesson.kind, level.number + 1)}>Start Level {level.number + 1} →</Link>}</div>}
+            <LevelProgress level={level} compact />
+            {stage === 'practice' ? <button className="btn btn-primary btn-block" onClick={onRecall}>Recall without prompts →</button> : !completed ? <button className="btn btn-primary btn-block" onClick={onPractice}>Complete this topic in Practice →</button> : <button className="btn btn-block" onClick={onRestart}>Recall again</button>}
+            {next && <Link className="btn btn-sm btn-block" to={`/learn/${next.lesson.id}?stage=${next.stage}`}>{next.stage === 'recall' ? 'Recall' : 'Next'}: {next.lesson.title} →</Link>}
+            <Link className="btn btn-ghost btn-sm btn-block" to={courseLink(lesson.kind, lesson.courseLevel)}>Back to Level {lesson.courseLevel}</Link>
             <button className="btn btn-ghost btn-sm" onClick={onStudy}>Revisit the explanation</button>
           </section>
         ) : (
@@ -477,7 +533,8 @@ function animationFor(position: Position, uci: string): BoardAnimate | null {
   const encoded = position.uciToMove(uci);
   if (encoded === null) return null;
   const move = decodeMove(encoded);
-  return { from: move.from, to: move.to, capturedPiece: position.pieceAt(move.to), capturedSquare: move.to, promoted: move.promo !== null };
+  const capturedSquare = move.flag === FLAG_EN_PASSANT ? move.to + (position.stm === WHITE ? -16 : 16) : move.to;
+  return { from: move.from, to: move.to, capturedPiece: position.pieceAt(capturedSquare), capturedSquare, promoted: move.promo !== null };
 }
 
 function playMoveSound(position: Position, uci: string): void {

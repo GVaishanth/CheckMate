@@ -1,6 +1,8 @@
 /** Toast notifications — bottom-center stack, auto-dismiss, ARIA live. */
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { uid } from '../utils';
+import { useActiveDialog } from './useDialogFocus';
 
 export interface ToastItem {
   id: string;
@@ -17,7 +19,15 @@ const ToastContext = createContext<ToastContextValue>({ toast: () => undefined }
 
 export const useToast = (): ToastContextValue => useContext(ToastContext);
 
+export function ToastHost({ hostRef }: { hostRef?: RefObject<HTMLDivElement> }) {
+  const id = useId();
+  return <div id={id} ref={hostRef} data-toast-host className="toast-stack" role="status" aria-live="polite" aria-atomic="true" />;
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const host = useRef<HTMLDivElement>(null);
+  const dialog = useActiveDialog();
+  const target = dialog?.querySelector<HTMLElement>('[data-toast-host]') ?? host.current;
   const [items, setItems] = useState<ToastItem[]>([]);
   const timers = useRef(new Map<string, number>());
 
@@ -42,13 +52,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="toast-stack" role="status" aria-live="polite">
-        {items.map((t) => (
+      <ToastHost hostRef={host} />
+      {target && createPortal(items.map((t) => (
           <div key={t.id} className={`toast${t.kind === 'danger' ? ' toast-danger' : t.kind === 'success' ? ' toast-success' : ''}`}>
             <span>{t.message}</span>
           </div>
-        ))}
-      </div>
+        )), target)}
     </ToastContext.Provider>
   );
 }

@@ -1,5 +1,7 @@
 /** Cinematic game-over panel. */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { ToastHost } from './Toast';
+import { useDialogFocus } from './useDialogFocus';
 
 export interface GameOverProps {
   /** Endgame winner color (used for the "side" outcome title). */
@@ -15,11 +17,14 @@ export interface GameOverProps {
   headline: string;
   subline?: string;
   stats: Array<{ label: string; value: string }>;
-  children?: React.ReactNode; // action buttons
+  children?: React.ReactNode;
+  onClose: () => void;
 }
 
-export function GameOver({ winner, outcome, reason, headline, subline, stats, children }: GameOverProps) {
+export function GameOver({ winner, outcome, reason, headline, subline, stats, children, onClose }: GameOverProps) {
   const [shown, setShown] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogFocus(panel, onClose);
   useEffect(() => {
     const t = window.setTimeout(() => setShown(true), 40);
     return () => window.clearTimeout(t);
@@ -33,7 +38,8 @@ export function GameOver({ winner, outcome, reason, headline, subline, stats, ch
   const tone = outcome === 'win' ? 'win' : outcome === 'loss' ? 'loss' : 'neutral';
 
   return (
-    <div className={`gameover-scrim${shown ? ' shown' : ''}`} role="dialog" aria-modal="true" aria-label="Game over">
+    <div className={`gameover-scrim${shown ? ' shown' : ''}`} role="dialog" aria-modal="true" aria-label="Game over" ref={panel}>
+      <ToastHost />
       <div className="gameover">
         <div className="gameover-reason mono">{reason}</div>
         <h2 className={`gameover-title ${tone}`}>{title}</h2>

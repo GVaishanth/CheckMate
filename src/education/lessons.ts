@@ -1,4 +1,6 @@
 import { START_FEN } from '../chess/constants';
+import openingCatalog from './opening-catalog.json';
+import matingCatalog from './mating-catalog.json';
 
 export type LessonKind = 'opening' | 'checkmate';
 export type LessonStage = 'study' | 'practice' | 'recall';
@@ -9,6 +11,9 @@ export interface Lesson {
   kind: LessonKind;
   title: string;
   level: 'Start here' | 'Build on it';
+  courseLevel: number;
+  topic?: string;
+  eco?: string;
   side: LessonSide;
   summary: string;
   goal: string;
@@ -22,7 +27,7 @@ export interface Lesson {
 
 const steps = (rows: [string, string][]): LessonStep[] => rows.map(([uci, note]) => ({ uci, note }));
 
-export const LESSONS: Lesson[] = [
+const ORIGINAL_LESSONS: Omit<Lesson, 'courseLevel'>[] = [
   {
     id: 'italian-game', kind: 'opening', title: 'Italian Game', level: 'Start here', side: 'white',
     summary: 'A natural first opening: take the centre, bring out your pieces, and castle.',
@@ -324,5 +329,19 @@ export const LESSONS: Lesson[] = [
     ]),
   },
 ];
+
+const ORIGINAL_LEVELS: Record<string, number> = {
+  'italian-game': 1, 'london-system': 1, 'scotch-game': 1, 'queens-gambit': 1,
+  'caro-kann': 1, scandinavian: 1, 'french-advance': 4, 'sicilian-classical': 5,
+  'ruy-lopez': 3, 'kings-indian': 7, 'back-rank': 1, 'supported-queen': 1,
+  'smothered-mate': 2, 'arabian-mate': 2, 'anastasia-mate': 2,
+  'ladder-mate': 6, 'queen-and-king': 6, 'rook-and-king': 6,
+};
+
+export const LESSONS: Lesson[] = [
+  ...ORIGINAL_LESSONS.map((lesson) => ({ ...lesson, courseLevel: ORIGINAL_LEVELS[lesson.id]! })),
+  ...openingCatalog as Lesson[],
+  ...matingCatalog as Lesson[],
+].sort((a, b) => a.kind === b.kind ? a.courseLevel - b.courseLevel : a.kind === 'opening' ? -1 : 1);
 
 export const lessonById = (id: string): Lesson | undefined => LESSONS.find((lesson) => lesson.id === id);

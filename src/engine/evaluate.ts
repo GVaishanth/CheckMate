@@ -93,8 +93,6 @@ export function evaluateFull(pos: Position): number {
 }function evalSide(pos: Position, color: Color, phase: number): number {
   const b = pos.board;
   const enemy = color ^ 1;
-
-  // ---- single scan: collect piece lists + pawn topology ----
   counts.pawn[0] = counts.pawn[1] = 0;
   counts.knight[0] = counts.knight[1] = 0;
   counts.slider[0] = counts.slider[1] = 0;
@@ -145,8 +143,6 @@ export function evaluateFull(pos: Position): number {
   let score = 0;
   const ownFiles = pawnFiles[color]!;
   const ownFrontier = frontier[color]!;
-
-  // ---- pawn structure ----
   for (let f = 0; f < 8; f++) {
     const own = ownFiles[f]!;
     if (!own) continue;
@@ -170,8 +166,6 @@ export function evaluateFull(pos: Position): number {
       score += (PASSED_MG[relRank]! * phase + PASSED_EG[relRank]! * (24 - phase)) / 24 | 0;
     }
   }
-
-  // ---- bishop pair + rook files ----
   if (counts.bishop[color]! >= 2) score += BISHOP_PAIR;
   for (let i = 0; i < counts.slider[color]!; i++) {
     if (sliderInfo[color]![i]! === 4) {
@@ -179,8 +173,6 @@ export function evaluateFull(pos: Position): number {
       if (!ownFiles[file]!) score += ownFrontier[file]! !== -1 ? ROOK_SEMI : ROOK_OPEN;
     }
   }
-
-  // ---- king safety (middlegame) ----
   if (phase > 6) {
     const kSq = pos.kingSquare(color);
     const kf = kSq & 7;

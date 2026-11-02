@@ -1,0 +1,3330 @@
+[
+  {
+    "id": "back-rank-new-angle",
+    "kind": "checkmate",
+    "title": "Back-rank mate: another angle",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Back-rank mate",
+    "summary": "A rook controls the last rank while the king’s own pawn shield closes its exits. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook needs an unobstructed checking line.",
+      "The king’s own pawns can be part of the mating cage.",
+      "An escape square can turn a mating check into an ordinary check."
+    ],
+    "remember": "Check the pawn shield, then look along the back rank.",
+    "watchOut": "Make sure a defender cannot capture the rook or interpose on the checking line.",
+    "startFen": "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "a1a8",
+        "note": "The rook gives Ra8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "back-rank-black",
+    "kind": "checkmate",
+    "title": "Back-rank mate: Black to finish",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "black",
+    "topic": "Back-rank mate",
+    "summary": "A rook controls the last rank while the king’s own pawn shield closes its exits. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook needs an unobstructed checking line.",
+      "The king’s own pawns can be part of the mating cage.",
+      "An escape square can turn a mating check into an ordinary check."
+    ],
+    "remember": "Check the pawn shield, then look along the back rank.",
+    "watchOut": "Make sure a defender cannot capture the rook or interpose on the checking line.",
+    "startFen": "4r1k1/8/8/8/8/8/5PPP/6K1 b - - 0 1",
+    "steps": [
+      {
+        "uci": "e8e1",
+        "note": "The rook gives Re1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "supported-queen-new-angle",
+    "kind": "checkmate",
+    "title": "The supported queen: another angle",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "white",
+    "topic": "The supported queen",
+    "summary": "A queen can close the king’s whole cage if a partner protects her landing square. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen controls a rank, file and diagonals at once.",
+      "A bishop can protect the queen from a king capture.",
+      "Count every flight square, including squares occupied by the defending pieces."
+    ],
+    "remember": "Queen near the king, partner protecting the queen.",
+    "watchOut": "Do not confuse an attacked square with a protected landing square for your own queen.",
+    "startFen": "5rk1/5ppp/8/8/7Q/3B4/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h4h7",
+        "note": "The queen gives Qxh7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "supported-queen-black",
+    "kind": "checkmate",
+    "title": "The supported queen: Black to finish",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "black",
+    "topic": "The supported queen",
+    "summary": "A queen can close the king’s whole cage if a partner protects her landing square. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen controls a rank, file and diagonals at once.",
+      "A bishop can protect the queen from a king capture.",
+      "Count every flight square, including squares occupied by the defending pieces."
+    ],
+    "remember": "Queen near the king, partner protecting the queen.",
+    "watchOut": "Do not confuse an attacked square with a protected landing square for your own queen.",
+    "startFen": "6k1/8/3b4/8/7q/8/5PPP/5RK1 b - - 0 1",
+    "steps": [
+      {
+        "uci": "h4h2",
+        "note": "The queen gives Qxh2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "pawn-mate",
+    "kind": "checkmate",
+    "title": "The pawn delivers mate",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "white",
+    "topic": "The pawn delivers mate",
+    "summary": "A pawn gives the final check while the king protects it and the defender’s pieces occupy the exits. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Pawn checks cannot be blocked.",
+      "A king can support a mating pawn without standing next to the enemy king.",
+      "Friendly pieces can prevent their own king from escaping."
+    ],
+    "remember": "Pawn checks diagonally; the king guards the pawn.",
+    "watchOut": "A pawn directly in front of a king is not necessarily checking it. Follow its attack direction.",
+    "startFen": "6bk/7b/5KP1/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g6g7",
+        "note": "The pawn gives g7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "pawn-mate-new-angle",
+    "kind": "checkmate",
+    "title": "The pawn delivers mate: another angle",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "white",
+    "topic": "The pawn delivers mate",
+    "summary": "A pawn gives the final check while the king protects it and the defender’s pieces occupy the exits. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Pawn checks cannot be blocked.",
+      "A king can support a mating pawn without standing next to the enemy king.",
+      "Friendly pieces can prevent their own king from escaping."
+    ],
+    "remember": "Pawn checks diagonally; the king guards the pawn.",
+    "watchOut": "A pawn directly in front of a king is not necessarily checking it. Follow its attack direction.",
+    "startFen": "5Kbk/7b/6P1/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g6g7",
+        "note": "The pawn gives g7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "pawn-mate-black",
+    "kind": "checkmate",
+    "title": "The pawn delivers mate: Black to finish",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "black",
+    "topic": "The pawn delivers mate",
+    "summary": "A pawn gives the final check while the king protects it and the defender’s pieces occupy the exits. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Pawn checks cannot be blocked.",
+      "A king can support a mating pawn without standing next to the enemy king.",
+      "Friendly pieces can prevent their own king from escaping."
+    ],
+    "remember": "Pawn checks diagonally; the king guards the pawn.",
+    "watchOut": "A pawn directly in front of a king is not necessarily checking it. Follow its attack direction.",
+    "startFen": "8/8/8/8/8/5kp1/7B/6BK b - - 0 1",
+    "steps": [
+      {
+        "uci": "g3g2",
+        "note": "The pawn gives g2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "smothered-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Smothered mate: another angle",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Smothered mate",
+    "summary": "The knight jumps through a shield of pieces that traps the defending king. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A knight check has no blocking defence.",
+      "The checking knight must not be capturable.",
+      "The defender’s own pieces can fill every neighbouring square."
+    ],
+    "remember": "Boxed-in king: look for the knight jump.",
+    "watchOut": "Before calling it mate, test every piece that might capture the knight.",
+    "startFen": "6rk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e5f7",
+        "note": "The knight gives Nf7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "smothered-mate-black",
+    "kind": "checkmate",
+    "title": "Smothered mate: Black to finish",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "black",
+    "topic": "Smothered mate",
+    "summary": "The knight jumps through a shield of pieces that traps the defending king. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A knight check has no blocking defence.",
+      "The checking knight must not be capturable.",
+      "The defender’s own pieces can fill every neighbouring square."
+    ],
+    "remember": "Boxed-in king: look for the knight jump.",
+    "watchOut": "Before calling it mate, test every piece that might capture the knight.",
+    "startFen": "6k1/8/8/8/8/7n/6PP/6RK b - - 0 1",
+    "steps": [
+      {
+        "uci": "h3f2",
+        "note": "The knight gives Nf2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "arabian-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Arabian mate: another angle",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Arabian mate",
+    "summary": "Rook and knight share the work against a king in the corner. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook gives the close-range check.",
+      "The knight protects the rook’s landing square.",
+      "That same knight closes a sideways flight square."
+    ],
+    "remember": "Rook checks; knight protects and closes the corner.",
+    "watchOut": "A rook beside the king must be protected. Count the knight’s two jobs separately.",
+    "startFen": "7k/6pp/5N2/8/8/7R/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h3h7",
+        "note": "The rook gives Rxh7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "arabian-mate-black",
+    "kind": "checkmate",
+    "title": "Arabian mate: Black to finish",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "black",
+    "topic": "Arabian mate",
+    "summary": "Rook and knight share the work against a king in the corner. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook gives the close-range check.",
+      "The knight protects the rook’s landing square.",
+      "That same knight closes a sideways flight square."
+    ],
+    "remember": "Rook checks; knight protects and closes the corner.",
+    "watchOut": "A rook beside the king must be protected. Count the knight’s two jobs separately.",
+    "startFen": "6kr/8/8/8/8/5n2/6PP/7K b - - 0 1",
+    "steps": [
+      {
+        "uci": "h8h2",
+        "note": "The rook gives Rxh2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "anastasia-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Anastasia’s mate: another angle",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Anastasia’s mate",
+    "summary": "A rook takes an edge file while a knight and a defending pawn close the sideways exits. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking file must be completely clear.",
+      "A knight controls an escape square away from the checking line.",
+      "A defending pawn completes the cage rather than helping the king."
+    ],
+    "remember": "Knight closes the side door; rook takes the edge file.",
+    "watchOut": "Do not assume the file is open. A single pawn between rook and king would stop the check.",
+    "startFen": "7k/4N1p1/8/8/8/R7/6K1/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "a3h3",
+        "note": "The rook gives Rh3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "anastasia-mate-black",
+    "kind": "checkmate",
+    "title": "Anastasia’s mate: Black to finish",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "black",
+    "topic": "Anastasia’s mate",
+    "summary": "A rook takes an edge file while a knight and a defending pawn close the sideways exits. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking file must be completely clear.",
+      "A knight controls an escape square away from the checking line.",
+      "A defending pawn completes the cage rather than helping the king."
+    ],
+    "remember": "Knight closes the side door; rook takes the edge file.",
+    "watchOut": "Do not assume the file is open. A single pawn between rook and king would stop the check.",
+    "startFen": "r7/6k1/8/8/8/8/4n1P1/7K b - - 0 1",
+    "steps": [
+      {
+        "uci": "a8h8",
+        "note": "The rook gives Rh8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "opera-mate",
+    "kind": "checkmate",
+    "title": "Opera mate",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Opera mate",
+    "summary": "A bishop supports a rook on the back rank and closes a flight square below the king. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A rook can give a close check when a bishop protects it.",
+      "The bishop’s diagonal does two jobs: support and escape-square control.",
+      "The defender’s pawn limits the king’s remaining flight."
+    ],
+    "remember": "Rook to the back rank; bishop backs it up.",
+    "watchOut": "The king may capture a checking rook if the protecting diagonal is blocked.",
+    "startFen": "4k3/5p2/8/6B1/8/8/8/3R2K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "d1d8",
+        "note": "The rook gives Rd8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "opera-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Opera mate: another angle",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Opera mate",
+    "summary": "A bishop supports a rook on the back rank and closes a flight square below the king. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A rook can give a close check when a bishop protects it.",
+      "The bishop’s diagonal does two jobs: support and escape-square control.",
+      "The defender’s pawn limits the king’s remaining flight."
+    ],
+    "remember": "Rook to the back rank; bishop backs it up.",
+    "watchOut": "The king may capture a checking rook if the protecting diagonal is blocked.",
+    "startFen": "4k3/5p2/8/6B1/8/8/3R4/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "d2d8",
+        "note": "The rook gives Rd8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "opera-mate-black",
+    "kind": "checkmate",
+    "title": "Opera mate: Black to finish",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Opera mate",
+    "summary": "A bishop supports a rook on the back rank and closes a flight square below the king. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A rook can give a close check when a bishop protects it.",
+      "The bishop’s diagonal does two jobs: support and escape-square control.",
+      "The defender’s pawn limits the king’s remaining flight."
+    ],
+    "remember": "Rook to the back rank; bishop backs it up.",
+    "watchOut": "The king may capture a checking rook if the protecting diagonal is blocked.",
+    "startFen": "3r2k1/8/8/8/6b1/8/5P2/4K3 b - - 0 1",
+    "steps": [
+      {
+        "uci": "d8d1",
+        "note": "The rook gives Rd1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "pillsbury-mate",
+    "kind": "checkmate",
+    "title": "Pillsbury’s mate",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Pillsbury’s mate",
+    "summary": "A rook check drives the king into the corner, then the bishop moves twice to close the final flight. The core pattern.",
+    "goal": "Force checkmate in at most 3 of your moves.",
+    "ideas": [
+      "The rook forces the king onto the corner square.",
+      "A bishop check hands the move back without losing the rook’s mating file.",
+      "The final bishop capture reveals the rook’s check and covers the corner escape."
+    ],
+    "remember": "Rook check → bishop check → bishop clears the file.",
+    "watchOut": "The bishop must both clear the rook’s file and control the king’s last escape. A discovered check alone is not enough.",
+    "startFen": "5rk1/5p1p/5p1B/8/8/8/8/2K4R w - - 0 1",
+    "steps": [
+      {
+        "uci": "h1g1",
+        "note": "Play Rg1+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "g8h8",
+        "note": "The defender plays Kh8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h6g7",
+        "note": "Play Bg7+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "h8g8",
+        "note": "The defender plays Kg8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "g7f6",
+        "note": "The bishop gives Bxf6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "pillsbury-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Pillsbury’s mate: another angle",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Pillsbury’s mate",
+    "summary": "A rook check drives the king into the corner, then the bishop moves twice to close the final flight. A changed starting position.",
+    "goal": "Force checkmate in at most 3 of your moves.",
+    "ideas": [
+      "The rook forces the king onto the corner square.",
+      "A bishop check hands the move back without losing the rook’s mating file.",
+      "The final bishop capture reveals the rook’s check and covers the corner escape."
+    ],
+    "remember": "Rook check → bishop check → bishop clears the file.",
+    "watchOut": "The bishop must both clear the rook’s file and control the king’s last escape. A discovered check alone is not enough.",
+    "startFen": "5rk1/5p1p/5p1B/8/8/8/7R/2K5 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h2g2",
+        "note": "Play Rg2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "g8h8",
+        "note": "The defender plays Kh8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h6g7",
+        "note": "Play Bg7+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "h8g8",
+        "note": "The defender plays Kg8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "g7f6",
+        "note": "The bishop gives Bxf6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "pillsbury-mate-black",
+    "kind": "checkmate",
+    "title": "Pillsbury’s mate: Black to finish",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Pillsbury’s mate",
+    "summary": "A rook check drives the king into the corner, then the bishop moves twice to close the final flight. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 3 of your moves.",
+    "ideas": [
+      "The rook forces the king onto the corner square.",
+      "A bishop check hands the move back without losing the rook’s mating file.",
+      "The final bishop capture reveals the rook’s check and covers the corner escape."
+    ],
+    "remember": "Rook check → bishop check → bishop clears the file.",
+    "watchOut": "The bishop must both clear the rook’s file and control the king’s last escape. A discovered check alone is not enough.",
+    "startFen": "2k4r/8/8/8/8/5P1b/5P1P/5RK1 b - - 0 1",
+    "steps": [
+      {
+        "uci": "h8g8",
+        "note": "Play Rg8+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "g1h1",
+        "note": "The defender plays Kh1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h3g2",
+        "note": "Play Bg2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "h1g1",
+        "note": "The defender plays Kg1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "g2f3",
+        "note": "The bishop gives Bxf3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "boden-mate",
+    "kind": "checkmate",
+    "title": "Boden’s mate",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Boden’s mate",
+    "summary": "Two bishops cross their diagonals around a king whose own pieces block the back rank. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The bishops control different-coloured diagonals.",
+      "One bishop gives check; the other removes a flight square.",
+      "The pieces behind the king complete the cage."
+    ],
+    "remember": "Crossed bishop diagonals plus blocked shoulders.",
+    "watchOut": "A rook able to interpose on the checking diagonal would spoil this mate. Verify the actual blockers.",
+    "startFen": "1bkr4/3p4/8/8/2B2B2/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c4a6",
+        "note": "The bishop gives Ba6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "boden-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Boden’s mate: another angle",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Boden’s mate",
+    "summary": "Two bishops cross their diagonals around a king whose own pieces block the back rank. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The bishops control different-coloured diagonals.",
+      "One bishop gives check; the other removes a flight square.",
+      "The pieces behind the king complete the cage."
+    ],
+    "remember": "Crossed bishop diagonals plus blocked shoulders.",
+    "watchOut": "A rook able to interpose on the checking diagonal would spoil this mate. Verify the actual blockers.",
+    "startFen": "1bkr4/3p4/8/8/5B2/8/4B3/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e2a6",
+        "note": "The bishop gives Ba6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "boden-mate-black",
+    "kind": "checkmate",
+    "title": "Boden’s mate: Black to finish",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Boden’s mate",
+    "summary": "Two bishops cross their diagonals around a king whose own pieces block the back rank. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The bishops control different-coloured diagonals.",
+      "One bishop gives check; the other removes a flight square.",
+      "The pieces behind the king complete the cage."
+    ],
+    "remember": "Crossed bishop diagonals plus blocked shoulders.",
+    "watchOut": "A rook able to interpose on the checking diagonal would spoil this mate. Verify the actual blockers.",
+    "startFen": "6k1/8/8/2b2b2/8/8/3P4/1BKR4 b - - 0 1",
+    "steps": [
+      {
+        "uci": "c5a3",
+        "note": "The bishop gives Ba3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "dovetail-mate",
+    "kind": "checkmate",
+    "title": "Dovetail mate",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Dovetail mate",
+    "summary": "A diagonally adjacent queen gives mate while the defender’s own pawns occupy the two uncovered exits. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A nearby queen controls most, but not all, of the king’s neighbouring squares.",
+      "Two friendly blockers occupy the squares the queen does not cover.",
+      "The attacking king protects the queen."
+    ],
+    "remember": "Diagonal queen, protected landing, two blocked exits.",
+    "watchOut": "Do not assume the queen covers all eight neighbouring squares. Locate the two gaps explicitly.",
+    "startFen": "8/8/4p3/4kp2/8/2KQ4/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "d3d4",
+        "note": "The queen gives Qd4#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "dovetail-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Dovetail mate: another angle",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Dovetail mate",
+    "summary": "A diagonally adjacent queen gives mate while the defender’s own pawns occupy the two uncovered exits. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A nearby queen controls most, but not all, of the king’s neighbouring squares.",
+      "Two friendly blockers occupy the squares the queen does not cover.",
+      "The attacking king protects the queen."
+    ],
+    "remember": "Diagonal queen, protected landing, two blocked exits.",
+    "watchOut": "Do not assume the queen covers all eight neighbouring squares. Locate the two gaps explicitly.",
+    "startFen": "8/8/4p3/4kp2/2Q5/2K5/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c4d4",
+        "note": "The queen gives Qd4#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "dovetail-mate-black",
+    "kind": "checkmate",
+    "title": "Dovetail mate: Black to finish",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Dovetail mate",
+    "summary": "A diagonally adjacent queen gives mate while the defender’s own pawns occupy the two uncovered exits. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A nearby queen controls most, but not all, of the king’s neighbouring squares.",
+      "Two friendly blockers occupy the squares the queen does not cover.",
+      "The attacking king protects the queen."
+    ],
+    "remember": "Diagonal queen, protected landing, two blocked exits.",
+    "watchOut": "Do not assume the queen covers all eight neighbouring squares. Locate the two gaps explicitly.",
+    "startFen": "8/8/2kq4/8/4KP2/4P3/8/8 b - - 0 1",
+    "steps": [
+      {
+        "uci": "d6d5",
+        "note": "The queen gives Qd5#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "swallows-tail",
+    "kind": "checkmate",
+    "title": "Swallow’s-tail mate",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Swallow’s-tail mate",
+    "summary": "A queen checks along a file while two pawns occupy the diagonal flights behind the king. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen checks from an adjacent square on the same file.",
+      "The queen’s partner protects the checking square.",
+      "The defender’s pawns occupy the two remaining diagonal exits."
+    ],
+    "remember": "Queen in front; the two backward diagonals are blocked.",
+    "watchOut": "A queen next to the king is not safe without support, even when the rest of the cage looks complete.",
+    "startFen": "8/8/3p1p2/4k3/Q7/3K4/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "a4e4",
+        "note": "The queen gives Qe4#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "swallows-tail-new-angle",
+    "kind": "checkmate",
+    "title": "Swallow’s-tail mate: another angle",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Swallow’s-tail mate",
+    "summary": "A queen checks along a file while two pawns occupy the diagonal flights behind the king. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen checks from an adjacent square on the same file.",
+      "The queen’s partner protects the checking square.",
+      "The defender’s pawns occupy the two remaining diagonal exits."
+    ],
+    "remember": "Queen in front; the two backward diagonals are blocked.",
+    "watchOut": "A queen next to the king is not safe without support, even when the rest of the cage looks complete.",
+    "startFen": "8/8/3p1p2/4k3/1Q6/3K4/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "b4e4",
+        "note": "The queen gives Qe4#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "swallows-tail-black",
+    "kind": "checkmate",
+    "title": "Swallow’s-tail mate: Black to finish",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Swallow’s-tail mate",
+    "summary": "A queen checks along a file while two pawns occupy the diagonal flights behind the king. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen checks from an adjacent square on the same file.",
+      "The queen’s partner protects the checking square.",
+      "The defender’s pawns occupy the two remaining diagonal exits."
+    ],
+    "remember": "Queen in front; the two backward diagonals are blocked.",
+    "watchOut": "A queen next to the king is not safe without support, even when the rest of the cage looks complete.",
+    "startFen": "8/8/3k4/q7/4K3/3P1P2/8/8 b - - 0 1",
+    "steps": [
+      {
+        "uci": "a5e5",
+        "note": "The queen gives Qe5#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "epaulette-mate",
+    "kind": "checkmate",
+    "title": "Epaulette mate",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Epaulette mate",
+    "summary": "Two rooks stand on the king’s shoulders while a queen closes the squares in front. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The two defending rooks obstruct the king’s sideways moves.",
+      "The queen checks along the file from a safe distance.",
+      "The queen’s diagonals control the forward flight squares."
+    ],
+    "remember": "Blocked shoulders; queen controls the front.",
+    "watchOut": "Check whether a rook can block the file. The shoulder pieces must really be unable to answer the check.",
+    "startFen": "3rkr2/8/8/8/8/7Q/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h3e6",
+        "note": "The queen gives Qe6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "epaulette-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Epaulette mate: another angle",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Epaulette mate",
+    "summary": "Two rooks stand on the king’s shoulders while a queen closes the squares in front. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The two defending rooks obstruct the king’s sideways moves.",
+      "The queen checks along the file from a safe distance.",
+      "The queen’s diagonals control the forward flight squares."
+    ],
+    "remember": "Blocked shoulders; queen controls the front.",
+    "watchOut": "Check whether a rook can block the file. The shoulder pieces must really be unable to answer the check.",
+    "startFen": "3rkr2/8/7Q/8/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h6e6",
+        "note": "The queen gives Qe6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "epaulette-mate-black",
+    "kind": "checkmate",
+    "title": "Epaulette mate: Black to finish",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Epaulette mate",
+    "summary": "Two rooks stand on the king’s shoulders while a queen closes the squares in front. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The two defending rooks obstruct the king’s sideways moves.",
+      "The queen checks along the file from a safe distance.",
+      "The queen’s diagonals control the forward flight squares."
+    ],
+    "remember": "Blocked shoulders; queen controls the front.",
+    "watchOut": "Check whether a rook can block the file. The shoulder pieces must really be unable to answer the check.",
+    "startFen": "6k1/8/7q/8/8/8/8/3RKR2 b - - 0 1",
+    "steps": [
+      {
+        "uci": "h6e3",
+        "note": "The queen gives Qe3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "hook-mate",
+    "kind": "checkmate",
+    "title": "Hook mate",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Hook mate",
+    "summary": "A pawn supports a knight, and the knight supports the checking rook while closing a flight square. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook gives the file check close to the king.",
+      "The knight protects the rook and controls a neighbouring escape.",
+      "A pawn supports the knight behind the attack."
+    ],
+    "remember": "Pawn → knight → checking rook.",
+    "watchOut": "The whole chain must work. Check the rook’s protection and the knight’s control before committing.",
+    "startFen": "6kr/5ppp/4N3/5P2/8/8/8/2K3R1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g1g7",
+        "note": "The rook gives Rxg7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "hook-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Hook mate: another angle",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Hook mate",
+    "summary": "A pawn supports a knight, and the knight supports the checking rook while closing a flight square. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook gives the file check close to the king.",
+      "The knight protects the rook and controls a neighbouring escape.",
+      "A pawn supports the knight behind the attack."
+    ],
+    "remember": "Pawn → knight → checking rook.",
+    "watchOut": "The whole chain must work. Check the rook’s protection and the knight’s control before committing.",
+    "startFen": "6kr/5ppp/4N3/5P2/8/6R1/8/2K5 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g3g7",
+        "note": "The rook gives Rxg7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "hook-mate-black",
+    "kind": "checkmate",
+    "title": "Hook mate: Black to finish",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Hook mate",
+    "summary": "A pawn supports a knight, and the knight supports the checking rook while closing a flight square. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook gives the file check close to the king.",
+      "The knight protects the rook and controls a neighbouring escape.",
+      "A pawn supports the knight behind the attack."
+    ],
+    "remember": "Pawn → knight → checking rook.",
+    "watchOut": "The whole chain must work. Check the rook’s protection and the knight’s control before committing.",
+    "startFen": "2k3r1/8/8/8/5p2/4n3/5PPP/6KR b - - 0 1",
+    "steps": [
+      {
+        "uci": "g8g2",
+        "note": "The rook gives Rxg2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "two-bishops-corner",
+    "kind": "checkmate",
+    "title": "Two bishops: the corner net",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Two bishops: the corner net",
+    "summary": "One bishop checks the corner king while the other bishop and the attacking king close the cage. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking bishop is protected by the king.",
+      "The second bishop controls the remaining edge escape.",
+      "A defending bishop blocks its own king without being able to capture the checker."
+    ],
+    "remember": "One bishop checks; the other seals the edge.",
+    "watchOut": "Bishops do not control adjacent squares on their own file. Trace both diagonals separately.",
+    "startFen": "6bk/8/5KBB/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h6g7",
+        "note": "The bishop gives Bg7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "two-bishops-corner-new-angle",
+    "kind": "checkmate",
+    "title": "Two bishops: the corner net: another angle",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Two bishops: the corner net",
+    "summary": "One bishop checks the corner king while the other bishop and the attacking king close the cage. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking bishop is protected by the king.",
+      "The second bishop controls the remaining edge escape.",
+      "A defending bishop blocks its own king without being able to capture the checker."
+    ],
+    "remember": "One bishop checks; the other seals the edge.",
+    "watchOut": "Bishops do not control adjacent squares on their own file. Trace both diagonals separately.",
+    "startFen": "5Bbk/8/5KB1/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "f8g7",
+        "note": "The bishop gives Bg7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "two-bishops-corner-black",
+    "kind": "checkmate",
+    "title": "Two bishops: the corner net: Black to finish",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Two bishops: the corner net",
+    "summary": "One bishop checks the corner king while the other bishop and the attacking king close the cage. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking bishop is protected by the king.",
+      "The second bishop controls the remaining edge escape.",
+      "A defending bishop blocks its own king without being able to capture the checker."
+    ],
+    "remember": "One bishop checks; the other seals the edge.",
+    "watchOut": "Bishops do not control adjacent squares on their own file. Trace both diagonals separately.",
+    "startFen": "8/8/8/8/8/5kbb/8/6BK b - - 0 1",
+    "steps": [
+      {
+        "uci": "h3g2",
+        "note": "The bishop gives Bg2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-knight-net",
+    "kind": "checkmate",
+    "title": "Bishop & knight: the corner net",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Bishop & knight: the corner net",
+    "summary": "The knight checks a corner king while the bishop controls a back-rank flight square. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A knight can give a check that the rook cannot block.",
+      "The bishop controls a square the knight does not cover.",
+      "The defender’s rook and pawn occupy the other exits."
+    ],
+    "remember": "Knight jump plus a bishop-controlled escape.",
+    "watchOut": "A rook near its king may look like a defender but still be unable to capture the checking knight.",
+    "startFen": "7k/6pr/8/4N3/2B5/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e5g6",
+        "note": "The knight gives Ng6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-knight-net-new-angle",
+    "kind": "checkmate",
+    "title": "Bishop & knight: the corner net: another angle",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Bishop & knight: the corner net",
+    "summary": "The knight checks a corner king while the bishop controls a back-rank flight square. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A knight can give a check that the rook cannot block.",
+      "The bishop controls a square the knight does not cover.",
+      "The defender’s rook and pawn occupy the other exits."
+    ],
+    "remember": "Knight jump plus a bishop-controlled escape.",
+    "watchOut": "A rook near its king may look like a defender but still be unable to capture the checking knight.",
+    "startFen": "7k/6pr/8/8/2B4N/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h4g6",
+        "note": "The knight gives Ng6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-knight-net-black",
+    "kind": "checkmate",
+    "title": "Bishop & knight: the corner net: Black to finish",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Bishop & knight: the corner net",
+    "summary": "The knight checks a corner king while the bishop controls a back-rank flight square. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A knight can give a check that the rook cannot block.",
+      "The bishop controls a square the knight does not cover.",
+      "The defender’s rook and pawn occupy the other exits."
+    ],
+    "remember": "Knight jump plus a bishop-controlled escape.",
+    "watchOut": "A rook near its king may look like a defender but still be unable to capture the checking knight.",
+    "startFen": "6k1/8/8/2b5/4n3/8/6PR/7K b - - 0 1",
+    "steps": [
+      {
+        "uci": "e4g3",
+        "note": "The knight gives Ng3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "ladder-mate-new-angle",
+    "kind": "checkmate",
+    "title": "The rook ladder: another angle",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "The rook ladder",
+    "summary": "One rook cuts off a rank; the other checks past it and drives the king to the edge. A changed starting position.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "Keep one rook as the wall while the other advances.",
+      "The checking rook should stay far enough away to avoid capture.",
+      "The last step uses both rooks, not the king."
+    ],
+    "remember": "One rook cuts off; the other steps past it.",
+    "watchOut": "Do not place an unprotected rook next to the king just to give check.",
+    "startFen": "8/5k2/R7/8/8/1R6/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "b3b7",
+        "note": "Play Rb7+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "f7e8",
+        "note": "The defender plays Ke8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "a6a8",
+        "note": "The rook gives Ra8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "ladder-mate-black",
+    "kind": "checkmate",
+    "title": "The rook ladder: Black to finish",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "The rook ladder",
+    "summary": "One rook cuts off a rank; the other checks past it and drives the king to the edge. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "Keep one rook as the wall while the other advances.",
+      "The checking rook should stay far enough away to avoid capture.",
+      "The last step uses both rooks, not the king."
+    ],
+    "remember": "One rook cuts off; the other steps past it.",
+    "watchOut": "Do not place an unprotected rook next to the king just to give check.",
+    "startFen": "1r4k1/8/8/8/8/r7/5K2/8 b - - 0 1",
+    "steps": [
+      {
+        "uci": "b8b2",
+        "note": "Play Rb2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "f2e1",
+        "note": "The defender plays Ke1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "a3a1",
+        "note": "The rook gives Ra1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "queen-and-king-new-angle",
+    "kind": "checkmate",
+    "title": "Queen & king: the final box: another angle",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Queen & king: the final box",
+    "summary": "The king comes closer and the queen uses a waiting move to arrange the finishing check. A changed starting position.",
+    "goal": "Force checkmate in at most 3 of your moves.",
+    "ideas": [
+      "The attacking king controls the squares below the edge.",
+      "A quiet queen move can preserve the winning cage.",
+      "Checkmate needs a check; a trapped king with no check is stalemated."
+    ],
+    "remember": "King closer → queen makes a wall → final check.",
+    "watchOut": "Do not remove the defender’s last legal move without giving check. That is stalemate.",
+    "startFen": "3k4/8/8/2K5/8/8/8/6Q1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c5d6",
+        "note": "Play Kd6. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "d8c8",
+        "note": "The defender plays Kc8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "g1b1",
+        "note": "Play Qb1. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "c8d8",
+        "note": "The defender plays Kd8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "b1b8",
+        "note": "The queen gives Qb8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "queen-and-king-black",
+    "kind": "checkmate",
+    "title": "Queen & king: the final box: Black to finish",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Queen & king: the final box",
+    "summary": "The king comes closer and the queen uses a waiting move to arrange the finishing check. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 3 of your moves.",
+    "ideas": [
+      "The attacking king controls the squares below the edge.",
+      "A quiet queen move can preserve the winning cage.",
+      "Checkmate needs a check; a trapped king with no check is stalemated."
+    ],
+    "remember": "King closer → queen makes a wall → final check.",
+    "watchOut": "Do not remove the defender’s last legal move without giving check. That is stalemate.",
+    "startFen": "7q/8/8/8/2k5/8/8/3K4 b - - 0 1",
+    "steps": [
+      {
+        "uci": "c4d3",
+        "note": "Play Kd3. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "d1e1",
+        "note": "The defender plays Ke1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h8f6",
+        "note": "Play Qf6. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e1d1",
+        "note": "The defender plays Kd1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "f6a1",
+        "note": "The queen gives Qa1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "rook-and-king-new-angle",
+    "kind": "checkmate",
+    "title": "Rook & king: opposition: another angle",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Rook & king: opposition",
+    "summary": "The king takes the flight squares and a rook waiting move puts the defender in the right position. A changed starting position.",
+    "goal": "Force checkmate in at most 3 of your moves.",
+    "ideas": [
+      "Bring the king closer without letting the kings touch.",
+      "A waiting move can force the king into opposition.",
+      "The rook gives the final edge check once the escapes are covered."
+    ],
+    "remember": "King closer → rook waits → king opposite → rook checks.",
+    "watchOut": "Checking too early can send the king back towards the centre. Improve the king first.",
+    "startFen": "3k4/8/8/2K5/8/8/8/6R1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c5d6",
+        "note": "Play Kd6. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "d8c8",
+        "note": "The defender plays Kc8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "g1b1",
+        "note": "Play Rb1. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "c8d8",
+        "note": "The defender plays Kd8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "b1b8",
+        "note": "The rook gives Rb8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "rook-and-king-black",
+    "kind": "checkmate",
+    "title": "Rook & king: opposition: Black to finish",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Rook & king: opposition",
+    "summary": "The king takes the flight squares and a rook waiting move puts the defender in the right position. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 3 of your moves.",
+    "ideas": [
+      "Bring the king closer without letting the kings touch.",
+      "A waiting move can force the king into opposition.",
+      "The rook gives the final edge check once the escapes are covered."
+    ],
+    "remember": "King closer → rook waits → king opposite → rook checks.",
+    "watchOut": "Checking too early can send the king back towards the centre. Improve the king first.",
+    "startFen": "7r/8/8/8/2k5/8/8/3K4 b - - 0 1",
+    "steps": [
+      {
+        "uci": "c4d3",
+        "note": "Play Kd3. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "d1c1",
+        "note": "The defender plays Kc1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h8b8",
+        "note": "Play Rb8. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "c1d1",
+        "note": "The defender plays Kd1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "b8b1",
+        "note": "The rook gives Rb1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "smothered-sacrifice",
+    "kind": "checkmate",
+    "title": "Smothered mate: queen sacrifice",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Smothered mate: queen sacrifice",
+    "summary": "Offer the queen with check so the rook is forced onto the king’s last escape square. The core pattern.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The knight protects the queen’s sacrifice square.",
+      "The rook must capture because the king has no safe move.",
+      "The final knight check cannot be blocked."
+    ],
+    "remember": "Queen sacrifice → forced rook capture → knight mate.",
+    "watchOut": "A queen sacrifice is not sound unless every legal defence still leads to mate.",
+    "startFen": "5r1k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "d5g8",
+        "note": "Play Qg8+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "f8g8",
+        "note": "The defender plays Rxg8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h6f7",
+        "note": "The knight gives Nf7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "smothered-sacrifice-new-angle",
+    "kind": "checkmate",
+    "title": "Smothered mate: queen sacrifice: another angle",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Smothered mate: queen sacrifice",
+    "summary": "Offer the queen with check so the rook is forced onto the king’s last escape square. A changed starting position.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The knight protects the queen’s sacrifice square.",
+      "The rook must capture because the king has no safe move.",
+      "The final knight check cannot be blocked."
+    ],
+    "remember": "Queen sacrifice → forced rook capture → knight mate.",
+    "watchOut": "A queen sacrifice is not sound unless every legal defence still leads to mate.",
+    "startFen": "5r1k/6pp/7N/8/2Q5/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c4g8",
+        "note": "Play Qg8+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "f8g8",
+        "note": "The defender plays Rxg8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h6f7",
+        "note": "The knight gives Nf7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "smothered-sacrifice-black",
+    "kind": "checkmate",
+    "title": "Smothered mate: queen sacrifice: Black to finish",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Smothered mate: queen sacrifice",
+    "summary": "Offer the queen with check so the rook is forced onto the king’s last escape square. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The knight protects the queen’s sacrifice square.",
+      "The rook must capture because the king has no safe move.",
+      "The final knight check cannot be blocked."
+    ],
+    "remember": "Queen sacrifice → forced rook capture → knight mate.",
+    "watchOut": "A queen sacrifice is not sound unless every legal defence still leads to mate.",
+    "startFen": "6k1/8/8/8/3q4/7n/6PP/5R1K b - - 0 1",
+    "steps": [
+      {
+        "uci": "d4g1",
+        "note": "Play Qg1+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "f1g1",
+        "note": "The defender plays Rxg1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h3f2",
+        "note": "The knight gives Nf2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "back-rank-sacrifice",
+    "kind": "checkmate",
+    "title": "Back rank: queen sacrifice",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Back rank: queen sacrifice",
+    "summary": "A queen draws the defending rook onto the file where a second attacker can recapture with mate. The core pattern.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The queen’s checking line forces a specific defensive capture.",
+      "A rook waits behind the sacrifice on the same file.",
+      "After the recapture, the pawn shield leaves no king flight."
+    ],
+    "remember": "Force the rook to take; recapture through the open file.",
+    "watchOut": "The second attacker must have a clear route. Check all interpositions before sacrificing the queen.",
+    "startFen": "r5k1/5ppp/8/8/8/8/4Q3/4R1K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e2e8",
+        "note": "Play Qe8+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "a8e8",
+        "note": "The defender plays Rxe8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "e1e8",
+        "note": "The rook gives Rxe8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "back-rank-sacrifice-new-angle",
+    "kind": "checkmate",
+    "title": "Back rank: queen sacrifice: another angle",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Back rank: queen sacrifice",
+    "summary": "A queen draws the defending rook onto the file where a second attacker can recapture with mate. A changed starting position.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The queen’s checking line forces a specific defensive capture.",
+      "A rook waits behind the sacrifice on the same file.",
+      "After the recapture, the pawn shield leaves no king flight."
+    ],
+    "remember": "Force the rook to take; recapture through the open file.",
+    "watchOut": "The second attacker must have a clear route. Check all interpositions before sacrificing the queen.",
+    "startFen": "r5k1/5ppp/8/8/8/4Q3/8/4R1K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e3e8",
+        "note": "Play Qe8+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "a8e8",
+        "note": "The defender plays Rxe8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "e1e8",
+        "note": "The rook gives Rxe8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "back-rank-sacrifice-black",
+    "kind": "checkmate",
+    "title": "Back rank: queen sacrifice: Black to finish",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Back rank: queen sacrifice",
+    "summary": "A queen draws the defending rook onto the file where a second attacker can recapture with mate. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The queen’s checking line forces a specific defensive capture.",
+      "A rook waits behind the sacrifice on the same file.",
+      "After the recapture, the pawn shield leaves no king flight."
+    ],
+    "remember": "Force the rook to take; recapture through the open file.",
+    "watchOut": "The second attacker must have a clear route. Check all interpositions before sacrificing the queen.",
+    "startFen": "4r1k1/4q3/8/8/8/8/5PPP/R5K1 b - - 0 1",
+    "steps": [
+      {
+        "uci": "e7e1",
+        "note": "Play Qe1+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "a1e1",
+        "note": "The defender plays Rxe1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "e8e1",
+        "note": "The rook gives Rxe1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "clearance-mate",
+    "kind": "checkmate",
+    "title": "Clearance: uncover the rook",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Clearance: uncover the rook",
+    "summary": "A bishop moves out of its own rook’s way to reveal a mating check on the file. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The piece that moves is not always the piece that gives check.",
+      "A discovered check opens a previously blocked line.",
+      "The king’s own pieces can make that discovered check mate."
+    ],
+    "remember": "Move the blocker; reveal the checking line.",
+    "watchOut": "Trace the rook’s file after the bishop moves. A hidden blocker would prevent the discovered check.",
+    "startFen": "3rkr2/3p1p2/8/8/8/8/4B3/4R1K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e2d3",
+        "note": "The bishop gives Bd3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "clearance-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Clearance: uncover the rook: another angle",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Clearance: uncover the rook",
+    "summary": "A bishop moves out of its own rook’s way to reveal a mating check on the file. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The piece that moves is not always the piece that gives check.",
+      "A discovered check opens a previously blocked line.",
+      "The king’s own pieces can make that discovered check mate."
+    ],
+    "remember": "Move the blocker; reveal the checking line.",
+    "watchOut": "Trace the rook’s file after the bishop moves. A hidden blocker would prevent the discovered check.",
+    "startFen": "3rkr2/3p1p2/8/8/4B3/8/8/4R1K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e4d3",
+        "note": "The bishop gives Bd3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "clearance-mate-black",
+    "kind": "checkmate",
+    "title": "Clearance: uncover the rook: Black to finish",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Clearance: uncover the rook",
+    "summary": "A bishop moves out of its own rook’s way to reveal a mating check on the file. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The piece that moves is not always the piece that gives check.",
+      "A discovered check opens a previously blocked line.",
+      "The king’s own pieces can make that discovered check mate."
+    ],
+    "remember": "Move the blocker; reveal the checking line.",
+    "watchOut": "Trace the rook’s file after the bishop moves. A hidden blocker would prevent the discovered check.",
+    "startFen": "4r1k1/4b3/8/8/8/8/3P1P2/3RKR2 b - - 0 1",
+    "steps": [
+      {
+        "uci": "e7d6",
+        "note": "The bishop gives Bd6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-promotion-mate",
+    "kind": "checkmate",
+    "title": "Promotion: a new queen",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Promotion: a new queen",
+    "summary": "Promote with check and use the new queen’s rank to seal the corner. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Promotion is part of the move, not a separate turn.",
+      "The promoted piece can give check immediately.",
+      "Rook promotion also works here: the rank is the decisive line."
+    ],
+    "remember": "Reach the last rank and check along it.",
+    "watchOut": "Choosing a queen is usually strong, but always check the actual resulting position for mate or stalemate.",
+    "startFen": "7k/5Ppp/8/8/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "f7f8q",
+        "note": "Choose a queen on f8 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-promotion-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Promotion: a new queen: another angle",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Promotion: a new queen",
+    "summary": "Promote with check and use the new queen’s rank to seal the corner. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Promotion is part of the move, not a separate turn.",
+      "The promoted piece can give check immediately.",
+      "Rook promotion also works here: the rank is the decisive line."
+    ],
+    "remember": "Reach the last rank and check along it.",
+    "watchOut": "Choosing a queen is usually strong, but always check the actual resulting position for mate or stalemate.",
+    "startFen": "k7/ppP5/8/8/8/8/8/1K6 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c7c8q",
+        "note": "Choose a queen on c8 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-promotion-mate-black",
+    "kind": "checkmate",
+    "title": "Promotion: a new queen: Black to finish",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Promotion: a new queen",
+    "summary": "Promote with check and use the new queen’s rank to seal the corner. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Promotion is part of the move, not a separate turn.",
+      "The promoted piece can give check immediately.",
+      "Rook promotion also works here: the rank is the decisive line."
+    ],
+    "remember": "Reach the last rank and check along it.",
+    "watchOut": "Choosing a queen is usually strong, but always check the actual resulting position for mate or stalemate.",
+    "startFen": "6k1/8/8/8/8/8/5pPP/7K b - - 0 1",
+    "steps": [
+      {
+        "uci": "f2f1q",
+        "note": "Choose a queen on f1 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "knight-promotion-mate",
+    "kind": "checkmate",
+    "title": "Underpromotion: only a knight",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Underpromotion: only a knight",
+    "summary": "The promoted knight checks from a square where a queen, rook or bishop would not check the king. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A promotion can be a knight instead of a queen.",
+      "The knight’s jump gives a check none of the sliding pieces can give.",
+      "The king and bishop cover the remaining flights."
+    ],
+    "remember": "Before queening, look for a knight’s checking jump.",
+    "watchOut": "A queen promotion is not mate in this position. Choose the knight in the promotion picker.",
+    "startFen": "8/6Pp/7k/5K1p/3B4/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g7g8n",
+        "note": "Choose a knight on g8 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "knight-promotion-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Underpromotion: only a knight: another angle",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Underpromotion: only a knight",
+    "summary": "The promoted knight checks from a square where a queen, rook or bishop would not check the king. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A promotion can be a knight instead of a queen.",
+      "The knight’s jump gives a check none of the sliding pieces can give.",
+      "The king and bishop cover the remaining flights."
+    ],
+    "remember": "Before queening, look for a knight’s checking jump.",
+    "watchOut": "A queen promotion is not mate in this position. Choose the knight in the promotion picker.",
+    "startFen": "8/6Pp/7k/4BK1p/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g7g8n",
+        "note": "Choose a knight on g8 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "knight-promotion-mate-black",
+    "kind": "checkmate",
+    "title": "Underpromotion: only a knight: Black to finish",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Underpromotion: only a knight",
+    "summary": "The promoted knight checks from a square where a queen, rook or bishop would not check the king. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A promotion can be a knight instead of a queen.",
+      "The knight’s jump gives a check none of the sliding pieces can give.",
+      "The king and bishop cover the remaining flights."
+    ],
+    "remember": "Before queening, look for a knight’s checking jump.",
+    "watchOut": "A queen promotion is not mate in this position. Choose the knight in the promotion picker.",
+    "startFen": "8/8/8/3b4/5k1P/7K/6pP/8 b - - 0 1",
+    "steps": [
+      {
+        "uci": "g2g1n",
+        "note": "Choose a knight on g1 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-promotion-mate",
+    "kind": "checkmate",
+    "title": "Promotion: a bishop is enough",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Promotion: a bishop is enough",
+    "summary": "The new bishop gives a diagonal check while the king and the defender’s pawns close the exits. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A bishop promotion can give immediate check.",
+      "The king controls the squares that the bishop cannot cover.",
+      "A queen also mates here; recognise why the diagonal alone is sufficient."
+    ],
+    "remember": "Promote on the checking diagonal; inspect the king’s support.",
+    "watchOut": "This is not a position where bishop promotion is uniquely required. Any promotion that forces mate counts.",
+    "startFen": "8/p1P5/k7/p1K5/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c7c8b",
+        "note": "Choose a bishop on c8 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-promotion-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Promotion: a bishop is enough: another angle",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Promotion: a bishop is enough",
+    "summary": "The new bishop gives a diagonal check while the king and the defender’s pawns close the exits. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A bishop promotion can give immediate check.",
+      "The king controls the squares that the bishop cannot cover.",
+      "A queen also mates here; recognise why the diagonal alone is sufficient."
+    ],
+    "remember": "Promote on the checking diagonal; inspect the king’s support.",
+    "watchOut": "This is not a position where bishop promotion is uniquely required. Any promotion that forces mate counts.",
+    "startFen": "8/p1P5/k1K5/p7/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c7c8b",
+        "note": "Choose a bishop on c8 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-promotion-mate-black",
+    "kind": "checkmate",
+    "title": "Promotion: a bishop is enough: Black to finish",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Promotion: a bishop is enough",
+    "summary": "The new bishop gives a diagonal check while the king and the defender’s pawns close the exits. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "A bishop promotion can give immediate check.",
+      "The king controls the squares that the bishop cannot cover.",
+      "A queen also mates here; recognise why the diagonal alone is sufficient."
+    ],
+    "remember": "Promote on the checking diagonal; inspect the king’s support.",
+    "watchOut": "This is not a position where bishop promotion is uniquely required. Any promotion that forces mate counts.",
+    "startFen": "8/8/8/8/P1k5/K7/P1p5/8 b - - 0 1",
+    "steps": [
+      {
+        "uci": "c2c1b",
+        "note": "Choose a bishop on c1 as part of the promotion move. The new piece gives checkmate immediately."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "castling-mate",
+    "kind": "checkmate",
+    "title": "Castling gives mate",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Castling gives mate",
+    "summary": "Castling brings the rook onto an open file and delivers the finishing check. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Castling moves both the king and rook in one turn.",
+      "The rook, not the king, gives the check.",
+      "Every castling condition still applies: rights, empty path and safe king squares."
+    ],
+    "remember": "Castle safely; the rook appears on the checking file.",
+    "watchOut": "You cannot castle out of, through or into check. The same mating idea is illegal if any king square is attacked.",
+    "startFen": "5k2/2N1p1pB/8/8/8/8/8/4K2R w K - 0 1",
+    "steps": [
+      {
+        "uci": "e1g1",
+        "note": "Castle kingside. The rook lands on the open checking file; the king’s path is legal and the opponent has no escape."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "castling-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Castling gives mate: queenside",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Castling gives mate",
+    "summary": "Castling brings the rook onto an open file and delivers the finishing check. Queenside castling.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Castling moves both the king and rook in one turn.",
+      "The rook, not the king, gives the check.",
+      "Every castling condition still applies: rights, empty path and safe king squares."
+    ],
+    "remember": "Castle safely; the rook appears on the checking file.",
+    "watchOut": "You cannot castle out of, through or into check. The same mating idea is illegal if any king square is attacked.",
+    "startFen": "3k4/N1p1p3/8/7B/8/8/8/R3K3 w Q - 0 1",
+    "steps": [
+      {
+        "uci": "e1c1",
+        "note": "Castle queenside. The rook lands on the open checking file; the king’s path is legal and the opponent has no escape."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "castling-mate-black",
+    "kind": "checkmate",
+    "title": "Castling gives mate: Black to finish",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Castling gives mate",
+    "summary": "Castling brings the rook onto an open file and delivers the finishing check. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Castling moves both the king and rook in one turn.",
+      "The rook, not the king, gives the check.",
+      "Every castling condition still applies: rights, empty path and safe king squares."
+    ],
+    "remember": "Castle safely; the rook appears on the checking file.",
+    "watchOut": "You cannot castle out of, through or into check. The same mating idea is illegal if any king square is attacked.",
+    "startFen": "4k2r/8/8/8/8/8/2n1P1Pb/5K2 b k - 0 1",
+    "steps": [
+      {
+        "uci": "e8g8",
+        "note": "Castle kingside. The rook lands on the open checking file; the king’s path is legal and the opponent has no escape."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "en-passant-mate",
+    "kind": "checkmate",
+    "title": "En passant reveals mate",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "En passant reveals mate",
+    "summary": "An en passant capture moves the pawn off the rook’s file and uncovers a mating check. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "En passant is available only immediately after the double pawn move.",
+      "The capturing pawn lands on an empty square and removes the pawn beside it.",
+      "The rook’s newly opened file supplies the check."
+    ],
+    "remember": "The pawn leaves the file; the rook’s check appears.",
+    "watchOut": "The special capture must still leave your own king safe. It is not available after waiting a turn.",
+    "startFen": "3rkr2/5p2/8/3pP3/6B1/8/8/4R1K1 w - d6 0 1",
+    "steps": [
+      {
+        "uci": "e5d6",
+        "note": "Capture en passant. The pawn leaves the rook’s file and removes the passed pawn; the newly revealed rook check is mate."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "en-passant-mate-new-angle",
+    "kind": "checkmate",
+    "title": "En passant reveals mate: another angle",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "En passant reveals mate",
+    "summary": "An en passant capture moves the pawn off the rook’s file and uncovers a mating check. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "En passant is available only immediately after the double pawn move.",
+      "The capturing pawn lands on an empty square and removes the pawn beside it.",
+      "The rook’s newly opened file supplies the check."
+    ],
+    "remember": "The pawn leaves the file; the rook’s check appears.",
+    "watchOut": "The special capture must still leave your own king safe. It is not available after waiting a turn.",
+    "startFen": "3rkr2/5p2/8/3pP3/6B1/8/4R3/6K1 w - d6 0 1",
+    "steps": [
+      {
+        "uci": "e5d6",
+        "note": "Capture en passant. The pawn leaves the rook’s file and removes the passed pawn; the newly revealed rook check is mate."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "en-passant-mate-black",
+    "kind": "checkmate",
+    "title": "En passant reveals mate: Black to finish",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "En passant reveals mate",
+    "summary": "An en passant capture moves the pawn off the rook’s file and uncovers a mating check. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "En passant is available only immediately after the double pawn move.",
+      "The capturing pawn lands on an empty square and removes the pawn beside it.",
+      "The rook’s newly opened file supplies the check."
+    ],
+    "remember": "The pawn leaves the file; the rook’s check appears.",
+    "watchOut": "The special capture must still leave your own king safe. It is not available after waiting a turn.",
+    "startFen": "4r1k1/8/8/6b1/3Pp3/8/5P2/3RKR2 b - d3 0 1",
+    "steps": [
+      {
+        "uci": "e4d3",
+        "note": "Capture en passant. The pawn leaves the rook’s file and removes the passed pawn; the newly revealed rook check is mate."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "double-check-mate",
+    "kind": "checkmate",
+    "title": "Double check: two checking lines",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Double check: two checking lines",
+    "summary": "The bishop gives check as it moves out of the rook’s file, so only a king move could answer. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Two pieces give check at the same time.",
+      "Capturing or blocking only one checker is not enough.",
+      "The king has no legal flight once the checking lines and blockers are counted."
+    ],
+    "remember": "Reveal the rook and check with the bishop too.",
+    "watchOut": "Do not label every discovered check a double check. Both pieces must actually attack the king.",
+    "startFen": "3rkr2/5p2/8/8/8/8/4B3/4R1K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e2b5",
+        "note": "The bishop gives Bb5#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "double-check-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Double check: two checking lines: another angle",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Double check: two checking lines",
+    "summary": "The bishop gives check as it moves out of the rook’s file, so only a king move could answer. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Two pieces give check at the same time.",
+      "Capturing or blocking only one checker is not enough.",
+      "The king has no legal flight once the checking lines and blockers are counted."
+    ],
+    "remember": "Reveal the rook and check with the bishop too.",
+    "watchOut": "Do not label every discovered check a double check. Both pieces must actually attack the king.",
+    "startFen": "2rkr3/2p5/8/8/8/8/3B4/1K1R4 w - - 0 1",
+    "steps": [
+      {
+        "uci": "d2g5",
+        "note": "The bishop gives Bg5#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "double-check-mate-black",
+    "kind": "checkmate",
+    "title": "Double check: two checking lines: Black to finish",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Double check: two checking lines",
+    "summary": "The bishop gives check as it moves out of the rook’s file, so only a king move could answer. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "Two pieces give check at the same time.",
+      "Capturing or blocking only one checker is not enough.",
+      "The king has no legal flight once the checking lines and blockers are counted."
+    ],
+    "remember": "Reveal the rook and check with the bishop too.",
+    "watchOut": "Do not label every discovered check a double check. Both pieces must actually attack the king.",
+    "startFen": "4r1k1/4b3/8/8/8/8/5P2/3RKR2 b - - 0 1",
+    "steps": [
+      {
+        "uci": "e7b4",
+        "note": "The bishop gives Bb4#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "damiano-mate",
+    "kind": "checkmate",
+    "title": "Damiano’s mate",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Damiano’s mate",
+    "summary": "An advanced pawn protects the queen on the mating square beside the king. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The pawn supports the queen’s close-range entry.",
+      "The queen checks and covers the edge flights.",
+      "The defending rook and pawns cannot rescue a king in this cage."
+    ],
+    "remember": "Advanced pawn protects the queen’s entry.",
+    "watchOut": "Check the pawn’s attack direction. A pawn beside the queen does not necessarily protect her.",
+    "startFen": "5rk1/5p1p/5P1Q/8/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h6g7",
+        "note": "The queen gives Qg7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "damiano-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Damiano’s mate: another angle",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Damiano’s mate",
+    "summary": "An advanced pawn protects the queen on the mating square beside the king. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The pawn supports the queen’s close-range entry.",
+      "The queen checks and covers the edge flights.",
+      "The defending rook and pawns cannot rescue a king in this cage."
+    ],
+    "remember": "Advanced pawn protects the queen’s entry.",
+    "watchOut": "Check the pawn’s attack direction. A pawn beside the queen does not necessarily protect her.",
+    "startFen": "5rk1/5ppp/7P/6Q1/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g5g7",
+        "note": "The queen gives Qxg7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "damiano-mate-black",
+    "kind": "checkmate",
+    "title": "Damiano’s mate: Black to finish",
+    "courseLevel": 1,
+    "level": "Start here",
+    "side": "black",
+    "topic": "Damiano’s mate",
+    "summary": "An advanced pawn protects the queen on the mating square beside the king. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The pawn supports the queen’s close-range entry.",
+      "The queen checks and covers the edge flights.",
+      "The defending rook and pawns cannot rescue a king in this cage."
+    ],
+    "remember": "Advanced pawn protects the queen’s entry.",
+    "watchOut": "Check the pawn’s attack direction. A pawn beside the queen does not necessarily protect her.",
+    "startFen": "6k1/8/8/8/8/5p1q/5P1P/5RK1 b - - 0 1",
+    "steps": [
+      {
+        "uci": "h3g2",
+        "note": "The queen gives Qg2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "two-knights-net",
+    "kind": "checkmate",
+    "title": "Two knights: a ready-made net",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Two knights: a ready-made net",
+    "summary": "The king and two knights already have the defender boxed in; a final jump completes the mate. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "One knight gives the checking jump.",
+      "The other knight controls an edge escape.",
+      "The king supplies the remaining control around the corner."
+    ],
+    "remember": "Checking knight, covering knight, supporting king.",
+    "watchOut": "Two knights cannot generally force mate against a bare king. This exercise starts from an already winning net, not a general forced-win method.",
+    "startFen": "7k/5K2/5N2/4N3/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e5g6",
+        "note": "The knight gives Ng6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "two-knights-net-new-angle",
+    "kind": "checkmate",
+    "title": "Two knights: a ready-made net: another angle",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "white",
+    "topic": "Two knights: a ready-made net",
+    "summary": "The king and two knights already have the defender boxed in; a final jump completes the mate. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "One knight gives the checking jump.",
+      "The other knight controls an edge escape.",
+      "The king supplies the remaining control around the corner."
+    ],
+    "remember": "Checking knight, covering knight, supporting king.",
+    "watchOut": "Two knights cannot generally force mate against a bare king. This exercise starts from an already winning net, not a general forced-win method.",
+    "startFen": "7k/5K2/5N2/8/7N/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h4g6",
+        "note": "The knight gives Ng6#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "two-knights-net-black",
+    "kind": "checkmate",
+    "title": "Two knights: a ready-made net: Black to finish",
+    "courseLevel": 2,
+    "level": "Start here",
+    "side": "black",
+    "topic": "Two knights: a ready-made net",
+    "summary": "The king and two knights already have the defender boxed in; a final jump completes the mate. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "One knight gives the checking jump.",
+      "The other knight controls an edge escape.",
+      "The king supplies the remaining control around the corner."
+    ],
+    "remember": "Checking knight, covering knight, supporting king.",
+    "watchOut": "Two knights cannot generally force mate against a bare king. This exercise starts from an already winning net, not a general forced-win method.",
+    "startFen": "8/8/8/8/4n3/5n2/5k2/7K b - - 0 1",
+    "steps": [
+      {
+        "uci": "e4g3",
+        "note": "The knight gives Ng3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-flight-mate",
+    "kind": "checkmate",
+    "title": "Bishop closes the flight",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Bishop closes the flight",
+    "summary": "A rook checks from a distance while the bishop takes away the open square below the king. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking rook does not need to stand next to the king.",
+      "The bishop removes a flight left open by the pawn shield.",
+      "The king’s own pawns close the remaining forward squares."
+    ],
+    "remember": "Rook checks the rank; bishop closes the flight.",
+    "watchOut": "A back-rank check is not mate if the king can step onto an unguarded square below it.",
+    "startFen": "6k1/5p1p/5B2/8/8/8/8/4R1K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e1e8",
+        "note": "The rook gives Re8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-flight-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Bishop closes the flight: another angle",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Bishop closes the flight",
+    "summary": "A rook checks from a distance while the bishop takes away the open square below the king. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking rook does not need to stand next to the king.",
+      "The bishop removes a flight left open by the pawn shield.",
+      "The king’s own pawns close the remaining forward squares."
+    ],
+    "remember": "Rook checks the rank; bishop closes the flight.",
+    "watchOut": "A back-rank check is not mate if the king can step onto an unguarded square below it.",
+    "startFen": "6k1/5p1p/5B2/8/8/8/8/R5K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "a1a8",
+        "note": "The rook gives Ra8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "bishop-flight-mate-black",
+    "kind": "checkmate",
+    "title": "Bishop closes the flight: Black to finish",
+    "courseLevel": 3,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Bishop closes the flight",
+    "summary": "A rook checks from a distance while the bishop takes away the open square below the king. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The checking rook does not need to stand next to the king.",
+      "The bishop removes a flight left open by the pawn shield.",
+      "The king’s own pawns close the remaining forward squares."
+    ],
+    "remember": "Rook checks the rank; bishop closes the flight.",
+    "watchOut": "A back-rank check is not mate if the king can step onto an unguarded square below it.",
+    "startFen": "4r1k1/8/8/8/8/5b2/5P1P/6K1 b - - 0 1",
+    "steps": [
+      {
+        "uci": "e8e1",
+        "note": "The rook gives Re1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-knight-entry",
+    "kind": "checkmate",
+    "title": "Queen & knight: protected entry",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Queen & knight: protected entry",
+    "summary": "A knight guards the queen’s landing square next to the king. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen supplies the check and most of the cage.",
+      "The knight protects the queen from the king’s capture.",
+      "The defending pawn shield can leave no way to escape."
+    ],
+    "remember": "Queen enters; knight guards the entry square.",
+    "watchOut": "Knight support is a jump, not a diagonal. Count the exact landing square before moving the queen.",
+    "startFen": "6kr/5ppp/3N4/7Q/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "h5f7",
+        "note": "The queen gives Qxf7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-knight-entry-new-angle",
+    "kind": "checkmate",
+    "title": "Queen & knight: protected entry: another angle",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Queen & knight: protected entry",
+    "summary": "A knight guards the queen’s landing square next to the king. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen supplies the check and most of the cage.",
+      "The knight protects the queen from the king’s capture.",
+      "The defending pawn shield can leave no way to escape."
+    ],
+    "remember": "Queen enters; knight guards the entry square.",
+    "watchOut": "Knight support is a jump, not a diagonal. Count the exact landing square before moving the queen.",
+    "startFen": "6kr/5ppp/3NQ3/8/8/8/8/6K1 w - - 0 1",
+    "steps": [
+      {
+        "uci": "e6f7",
+        "note": "The queen gives Qxf7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-knight-entry-black",
+    "kind": "checkmate",
+    "title": "Queen & knight: protected entry: Black to finish",
+    "courseLevel": 4,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Queen & knight: protected entry",
+    "summary": "A knight guards the queen’s landing square next to the king. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen supplies the check and most of the cage.",
+      "The knight protects the queen from the king’s capture.",
+      "The defending pawn shield can leave no way to escape."
+    ],
+    "remember": "Queen enters; knight guards the entry square.",
+    "watchOut": "Knight support is a jump, not a diagonal. Count the exact landing square before moving the queen.",
+    "startFen": "6k1/8/8/8/7q/3n4/5PPP/6KR b - - 0 1",
+    "steps": [
+      {
+        "uci": "h4f2",
+        "note": "The queen gives Qxf2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "rook-pawn-flight",
+    "kind": "checkmate",
+    "title": "Rook, king & pawn: the edge net",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Rook, king & pawn: the edge net",
+    "summary": "The king protects the checking rook and a pawn controls the king’s last back-rank flight. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook captures the pawn shielding the king.",
+      "The attacking king protects the checking rook.",
+      "A separate pawn controls the otherwise open escape square."
+    ],
+    "remember": "King guards the rook; pawn guards the flight.",
+    "watchOut": "In the changed position your king begins in check. The rook capture must answer that check as well as deliver mate.",
+    "startFen": "7k/5PRp/7K/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g7h7",
+        "note": "The rook gives Rxh7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "rook-pawn-flight-new-angle",
+    "kind": "checkmate",
+    "title": "Rook, king & pawn: the edge net: another angle",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Rook, king & pawn: the edge net",
+    "summary": "The king protects the checking rook and a pawn controls the king’s last back-rank flight. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook captures the pawn shielding the king.",
+      "The attacking king protects the checking rook.",
+      "A separate pawn controls the otherwise open escape square."
+    ],
+    "remember": "King guards the rook; pawn guards the flight.",
+    "watchOut": "In the changed position your king begins in check. The rook capture must answer that check as well as deliver mate.",
+    "startFen": "7k/5PRp/6K1/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "g7h7",
+        "note": "The rook gives Rxh7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "rook-pawn-flight-black",
+    "kind": "checkmate",
+    "title": "Rook, king & pawn: the edge net: Black to finish",
+    "courseLevel": 5,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Rook, king & pawn: the edge net",
+    "summary": "The king protects the checking rook and a pawn controls the king’s last back-rank flight. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The rook captures the pawn shielding the king.",
+      "The attacking king protects the checking rook.",
+      "A separate pawn controls the otherwise open escape square."
+    ],
+    "remember": "King guards the rook; pawn guards the flight.",
+    "watchOut": "In the changed position your king begins in check. The rook capture must answer that check as well as deliver mate.",
+    "startFen": "8/8/8/8/8/7k/5prP/7K b - - 0 1",
+    "steps": [
+      {
+        "uci": "g2h2",
+        "note": "The rook gives Rxh2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-rook-battery",
+    "kind": "checkmate",
+    "title": "Queen & rook: the mating battery",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Queen & rook: the mating battery",
+    "summary": "The queen captures the shield pawn with check and the rook protects her along the file. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen is the front piece of a battery.",
+      "The rook protects the queen through the cleared file.",
+      "The queen controls the neighbouring rank and diagonal."
+    ],
+    "remember": "Front piece checks; rear piece protects.",
+    "watchOut": "A battery only works if the line between the two attackers is clear after the move.",
+    "startFen": "7k/7p/8/7Q/8/8/8/2K4R w - - 0 1",
+    "steps": [
+      {
+        "uci": "h5h7",
+        "note": "The queen gives Qxh7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-rook-battery-new-angle",
+    "kind": "checkmate",
+    "title": "Queen & rook: the mating battery: another angle",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Queen & rook: the mating battery",
+    "summary": "The queen captures the shield pawn with check and the rook protects her along the file. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen is the front piece of a battery.",
+      "The rook protects the queen through the cleared file.",
+      "The queen controls the neighbouring rank and diagonal."
+    ],
+    "remember": "Front piece checks; rear piece protects.",
+    "watchOut": "A battery only works if the line between the two attackers is clear after the move.",
+    "startFen": "7k/7p/8/8/7Q/8/8/2K4R w - - 0 1",
+    "steps": [
+      {
+        "uci": "h4h7",
+        "note": "The queen gives Qxh7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "queen-rook-battery-black",
+    "kind": "checkmate",
+    "title": "Queen & rook: the mating battery: Black to finish",
+    "courseLevel": 6,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Queen & rook: the mating battery",
+    "summary": "The queen captures the shield pawn with check and the rook protects her along the file. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The queen is the front piece of a battery.",
+      "The rook protects the queen through the cleared file.",
+      "The queen controls the neighbouring rank and diagonal."
+    ],
+    "remember": "Front piece checks; rear piece protects.",
+    "watchOut": "A battery only works if the line between the two attackers is clear after the move.",
+    "startFen": "2k4r/8/8/8/7q/8/7P/7K b - - 0 1",
+    "steps": [
+      {
+        "uci": "h4h2",
+        "note": "The queen gives Qxh2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "legal-mate",
+    "kind": "checkmate",
+    "title": "Légal’s mate: after the queen capture",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Légal’s mate: after the queen capture",
+    "summary": "After the defender grabs the queen, a bishop check drives the king into a net made by two knights. The core pattern.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The bishop check forces the king into the centre.",
+      "The first knight protects the checking bishop and a king flight.",
+      "The second knight lands with the final check."
+    ],
+    "remember": "Bishop check → forced king move → knight mate.",
+    "watchOut": "The earlier queen offer is not a forced trap: the defender need not capture it. This exercise begins only after that capture has happened.",
+    "startFen": "rn1qkbnr/ppp2p1p/3p2p1/4N3/2B1P3/2N5/PPPP1PPP/R1BbK2R w KQkq - 0 1",
+    "steps": [
+      {
+        "uci": "c4f7",
+        "note": "Play Bxf7+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e8e7",
+        "note": "The defender plays Ke7. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c3d5",
+        "note": "The knight gives Nd5#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "legal-mate-new-angle",
+    "kind": "checkmate",
+    "title": "Légal’s mate: after the queen capture: another angle",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Légal’s mate: after the queen capture",
+    "summary": "After the defender grabs the queen, a bishop check drives the king into a net made by two knights. A changed starting position.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The bishop check forces the king into the centre.",
+      "The first knight protects the checking bishop and a king flight.",
+      "The second knight lands with the final check."
+    ],
+    "remember": "Bishop check → forced king move → knight mate.",
+    "watchOut": "The earlier queen offer is not a forced trap: the defender need not capture it. This exercise begins only after that capture has happened.",
+    "startFen": "rn1qkbnr/ppp2p1p/3p2p1/4N3/1NB1P3/8/PPPP1PPP/R1BbK2R w KQkq - 0 1",
+    "steps": [
+      {
+        "uci": "c4f7",
+        "note": "Play Bxf7+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e8e7",
+        "note": "The defender plays Ke7. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "b4d5",
+        "note": "The knight gives Nd5#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "legal-mate-black",
+    "kind": "checkmate",
+    "title": "Légal’s mate: after the queen capture: Black to finish",
+    "courseLevel": 7,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Légal’s mate: after the queen capture",
+    "summary": "After the defender grabs the queen, a bishop check drives the king into a net made by two knights. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "The bishop check forces the king into the centre.",
+      "The first knight protects the checking bishop and a king flight.",
+      "The second knight lands with the final check."
+    ],
+    "remember": "Bishop check → forced king move → knight mate.",
+    "watchOut": "The earlier queen offer is not a forced trap: the defender need not capture it. This exercise begins only after that capture has happened.",
+    "startFen": "r1bBk2r/pppp1ppp/2n5/2b1p3/4n3/3P2P1/PPP2P1P/RN1QKBNR b KQkq - 0 1",
+    "steps": [
+      {
+        "uci": "c5f2",
+        "note": "Play Bxf2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e1e2",
+        "note": "The defender plays Ke2. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c6d4",
+        "note": "The knight gives Nd4#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "rook-promotion-stalemate",
+    "kind": "checkmate",
+    "title": "Underpromotion: avoid stalemate",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Underpromotion: avoid stalemate",
+    "summary": "Queening would leave a stalemated king. A rook leaves one forced flight and then mates. The core pattern.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "A queen promotion would end the game as a draw here.",
+      "A rook keeps a legal move available to the defender.",
+      "After the forced king move, the rook checks along the edge with king support."
+    ],
+    "remember": "Do not queen into stalemate: rook → forced flight → mate.",
+    "watchOut": "The strongest piece is not always the winning promotion. Inspect the opponent’s legal moves before choosing.",
+    "startFen": "8/k1P5/2K5/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c7c8r",
+        "note": "Choose a rook on c8 as part of the promotion move. The mate remains forced. Inspect the defender’s legal replies before choosing the next move."
+      },
+      {
+        "uci": "a7a6",
+        "note": "The defender plays Ka6. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c8a8",
+        "note": "The rook gives Ra8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "rook-promotion-stalemate-new-angle",
+    "kind": "checkmate",
+    "title": "Underpromotion: avoid stalemate: another angle",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Underpromotion: avoid stalemate",
+    "summary": "Queening would leave a stalemated king. A rook leaves one forced flight and then mates. A changed starting position.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "A queen promotion would end the game as a draw here.",
+      "A rook keeps a legal move available to the defender.",
+      "After the forced king move, the rook checks along the edge with king support."
+    ],
+    "remember": "Do not queen into stalemate: rook → forced flight → mate.",
+    "watchOut": "The strongest piece is not always the winning promotion. Inspect the opponent’s legal moves before choosing.",
+    "startFen": "8/5P1k/5K2/8/8/8/8/8 w - - 0 1",
+    "steps": [
+      {
+        "uci": "f7f8r",
+        "note": "Choose a rook on f8 as part of the promotion move. The mate remains forced. Inspect the defender’s legal replies before choosing the next move."
+      },
+      {
+        "uci": "h7h6",
+        "note": "The defender plays Kh6. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "f8h8",
+        "note": "The rook gives Rh8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "rook-promotion-stalemate-black",
+    "kind": "checkmate",
+    "title": "Underpromotion: avoid stalemate: Black to finish",
+    "courseLevel": 8,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Underpromotion: avoid stalemate",
+    "summary": "Queening would leave a stalemated king. A rook leaves one forced flight and then mates. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most 2 of your moves.",
+    "ideas": [
+      "A queen promotion would end the game as a draw here.",
+      "A rook keeps a legal move available to the defender.",
+      "After the forced king move, the rook checks along the edge with king support."
+    ],
+    "remember": "Do not queen into stalemate: rook → forced flight → mate.",
+    "watchOut": "The strongest piece is not always the winning promotion. Inspect the opponent’s legal moves before choosing.",
+    "startFen": "8/8/8/8/8/2k5/K1p5/8 b - - 0 1",
+    "steps": [
+      {
+        "uci": "c2c1r",
+        "note": "Choose a rook on c1 as part of the promotion move. The mate remains forced. Inspect the defender’s legal replies before choosing the next move."
+      },
+      {
+        "uci": "a2a3",
+        "note": "The defender plays Ka3. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c1a1",
+        "note": "The rook gives Ra1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 2
+  },
+  {
+    "id": "en-passant-double-check",
+    "kind": "checkmate",
+    "title": "En passant: double check",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "En passant: double check",
+    "summary": "The special capture removes two blockers at once, opening a rook file and a bishop diagonal. The core pattern.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The capturing pawn leaves the rook’s file.",
+      "The captured pawn disappears from the bishop’s diagonal.",
+      "Both checks must be answered, so only a king move could save the defender."
+    ],
+    "remember": "Two pawns leave two lines: rook and bishop check together.",
+    "watchOut": "The en passant capture exists only on this turn. Trace both checking lines after removing the captured pawn.",
+    "startFen": "8/8/2K1kp2/3pPp2/8/1B6/8/4R3 w - d6 0 1",
+    "steps": [
+      {
+        "uci": "e5d6",
+        "note": "Capture en passant. The pawn leaves the rook’s file and removes the passed pawn; the newly revealed rook check is mate."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "en-passant-double-check-new-angle",
+    "kind": "checkmate",
+    "title": "En passant: double check: another angle",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "En passant: double check",
+    "summary": "The special capture removes two blockers at once, opening a rook file and a bishop diagonal. A changed starting position.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The capturing pawn leaves the rook’s file.",
+      "The captured pawn disappears from the bishop’s diagonal.",
+      "Both checks must be answered, so only a king move could save the defender."
+    ],
+    "remember": "Two pawns leave two lines: rook and bishop check together.",
+    "watchOut": "The en passant capture exists only on this turn. Trace both checking lines after removing the captured pawn.",
+    "startFen": "8/8/2K1kp2/3pPp2/8/1B6/4R3/8 w - d6 0 1",
+    "steps": [
+      {
+        "uci": "e5d6",
+        "note": "Capture en passant. The pawn leaves the rook’s file and removes the passed pawn; the newly revealed rook check is mate."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "en-passant-double-check-black",
+    "kind": "checkmate",
+    "title": "En passant: double check: Black to finish",
+    "courseLevel": 9,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "En passant: double check",
+    "summary": "The special capture removes two blockers at once, opening a rook file and a bishop diagonal. Recognise the pattern as Black.",
+    "goal": "Force checkmate in at most one move.",
+    "ideas": [
+      "The capturing pawn leaves the rook’s file.",
+      "The captured pawn disappears from the bishop’s diagonal.",
+      "Both checks must be answered, so only a king move could save the defender."
+    ],
+    "remember": "Two pawns leave two lines: rook and bishop check together.",
+    "watchOut": "The en passant capture exists only on this turn. Trace both checking lines after removing the captured pawn.",
+    "startFen": "4r3/8/1b6/8/3PpP2/2k1KP2/8/8 b - d3 0 1",
+    "steps": [
+      {
+        "uci": "e4d3",
+        "note": "Capture en passant. The pawn leaves the rook’s file and removes the passed pawn; the newly revealed rook check is mate."
+      }
+    ],
+    "mateIn": 1
+  },
+  {
+    "id": "mate-calculation-01",
+    "kind": "checkmate",
+    "title": "01. Break the back rank",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "r1b1kbn1/p1B3pr/8/3p3P/P2nPR2/8/R2q4/1K6 b - - 3 33",
+    "steps": [
+      {
+        "uci": "d2d1",
+        "note": "Play Qd1+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "b1b2",
+        "note": "The defender plays Kb2. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "d1c2",
+        "note": "Play Qc2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "b2a1",
+        "note": "The defender plays Ka1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c2c1",
+        "note": "The queen gives Qc1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-02",
+    "kind": "checkmate",
+    "title": "02. Break the back rank",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "rn2k2q/p2b3n/P2p4/1p4p1/2p5/8/8/7K b q - 0 1",
+    "steps": [
+      {
+        "uci": "h8b2",
+        "note": "Play Qb2. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "h1g1",
+        "note": "The defender plays Kg1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "d7h3",
+        "note": "Play Bh3. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "g1h1",
+        "note": "The defender plays Kh1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "b2g2",
+        "note": "The queen gives Qg2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-03",
+    "kind": "checkmate",
+    "title": "03. Break the back rank",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "rn6/ppp5/5k2/1R6/2PP2bP/6b1/P3p1B1/1N4K1 b - - 1 26",
+    "steps": [
+      {
+        "uci": "e2e1q",
+        "note": "Choose a queen on e1 as part of the promotion move. The mate remains forced. Inspect the defender’s legal replies before choosing the next move."
+      },
+      {
+        "uci": "g2f1",
+        "note": "The defender plays Bf1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "e1f2",
+        "note": "Play Qf2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "g1h1",
+        "note": "The defender plays Kh1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "f2f1",
+        "note": "The queen gives Qxf1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-04",
+    "kind": "checkmate",
+    "title": "04. Coordinate the knight",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the knight. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the knight with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "8/1k6/3Q4/1bp5/p4PP1/2N5/4P2N/R3KB2 w - - 0 1",
+    "steps": [
+      {
+        "uci": "c3b5",
+        "note": "Play Nxb5. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "a4a3",
+        "note": "The defender plays a3. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "f1g2",
+        "note": "Play Bg2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "b7c8",
+        "note": "The defender plays Kc8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "b5a7",
+        "note": "The knight gives Na7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-05",
+    "kind": "checkmate",
+    "title": "05. Coordinate the queen",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "8/4n2k/4Q2P/p7/P3P3/1P1P1p2/5P2/4KN2 w - - 1 39",
+    "steps": [
+      {
+        "uci": "e6f6",
+        "note": "Play Qf6. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e7f5",
+        "note": "The defender plays Nf5. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "e4f5",
+        "note": "Play exf5. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "h7g8",
+        "note": "The defender plays Kg8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "f6g7",
+        "note": "The queen gives Qg7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-06",
+    "kind": "checkmate",
+    "title": "06. Coordinate the queen",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "rnQ2bn1/p3k3/P6P/RN2pp2/4PP1p/3P2pP/2P5/2BQK1NR w K - 0 1",
+    "steps": [
+      {
+        "uci": "c1a3",
+        "note": "Play Ba3+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e7f7",
+        "note": "The defender plays Kf7. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c8f8",
+        "note": "Play Qxf8+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "f7e6",
+        "note": "The defender plays Ke6. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "f8f5",
+        "note": "The queen gives Qxf5#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-07",
+    "kind": "checkmate",
+    "title": "07. Coordinate the queen",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "r1b2bn1/p1B2kpr/3p4/7P/P2nP2R/8/1K1Nq3/R7 b - - 1 30",
+    "steps": [
+      {
+        "uci": "e2d2",
+        "note": "Play Qxd2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "b2a3",
+        "note": "The defender plays Ka3. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "d2c3",
+        "note": "Play Qc3+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "a3a2",
+        "note": "The defender plays Ka2. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c3b3",
+        "note": "The queen gives Qb3#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-08",
+    "kind": "checkmate",
+    "title": "08. Coordinate the rook",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the rook. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the rook with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "r3kb1r/7p/8/2p1p1PP/P5n1/1N1p2PK/4q3/8 b kq - 0 1",
+    "steps": [
+      {
+        "uci": "e2f1",
+        "note": "Play Qf1+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "h3g4",
+        "note": "The defender plays Kxg4. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "a8a4",
+        "note": "Play Rxa4+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "b3d4",
+        "note": "The defender plays Nd4. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "a4d4",
+        "note": "The rook gives Rxd4#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-09",
+    "kind": "checkmate",
+    "title": "09. Coordinate the queen",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "2k5/n3P3/P7/P4n1p/2p3pP/2P3P1/1B1R4/1N4K1 w - - 0 32",
+    "steps": [
+      {
+        "uci": "e7e8q",
+        "note": "Choose a queen on e8 as part of the promotion move. The mate remains forced. Inspect the defender’s legal replies before choosing the next move."
+      },
+      {
+        "uci": "c8c7",
+        "note": "The defender plays Kc7. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "e8d7",
+        "note": "Play Qd7+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "c7b8",
+        "note": "The defender plays Kb8. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "d7b7",
+        "note": "The queen gives Qb7#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-10",
+    "kind": "checkmate",
+    "title": "10. Coordinate the queen",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "1nq3k1/1b4r1/2p3p1/2P3Pp/7P/4K3/8/1q6 b - - 0 1",
+    "steps": [
+      {
+        "uci": "c8h3",
+        "note": "Play Qh3+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e3d2",
+        "note": "The defender plays Kd2. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "b1a2",
+        "note": "Play Qa2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "d2c1",
+        "note": "The defender plays Kc1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "h3f1",
+        "note": "The queen gives Qf1#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-11",
+    "kind": "checkmate",
+    "title": "11. Coordinate the queen",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "black",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "rnb3rb/8/p3kp2/1Pp2p1P/8/P1q5/4K3/R1B2N2 b - - 2 39",
+    "steps": [
+      {
+        "uci": "g8g2",
+        "note": "Play Rg2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "e2d1",
+        "note": "The defender plays Kd1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c3c2",
+        "note": "Play Qc2+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "d1e1",
+        "note": "The defender plays Ke1. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "c2e2",
+        "note": "The queen gives Qe2#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  },
+  {
+    "id": "mate-calculation-12",
+    "kind": "checkmate",
+    "title": "12. Coordinate the queen",
+    "courseLevel": 10,
+    "level": "Build on it",
+    "side": "white",
+    "topic": "Mate in three: full-board calculation",
+    "summary": "A full-board mate-in-three combination, finishing with the queen. Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+    "goal": "Force checkmate in at most three of your moves. Test the strongest defence, not just the first reply you notice.",
+    "ideas": [
+      "Use forcing moves to reduce the defender’s choices, but still test every legal reply.",
+      "Coordinate the queen with its supporting pieces and count the king’s flights.",
+      "A move is accepted only if the mate survives every legal defence within the limit."
+    ],
+    "remember": "Candidate check → every defence → forcing continuation → count the final cage.",
+    "watchOut": "Do not stop calculating when the first move looks strong. A capture, interposition or unexpected king flight may change the continuation.",
+    "startFen": "2k3N1/8/8/4PP2/1P3P2/p7/P7/R4KBQ w - - 0 1",
+    "steps": [
+      {
+        "uci": "h1a8",
+        "note": "Play Qa8+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "c8c7",
+        "note": "The defender plays Kc7. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "a1c1",
+        "note": "Play Rc1+. This move keeps the mate forced against every legal reply, not just the demonstrated defence."
+      },
+      {
+        "uci": "c7d7",
+        "note": "The defender plays Kd7. This is a tested defence that prolongs the fight; the forcing continuation still works."
+      },
+      {
+        "uci": "a8c8",
+        "note": "The queen gives Qc8#. Checkmate: the king is checked and has no legal escape, capture or blocking defence."
+      }
+    ],
+    "mateIn": 3
+  }
+]

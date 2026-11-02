@@ -19,7 +19,8 @@ export class MateClient {
         this.pending.delete(event.data.id);
         pending.resolve(event.data);
       };
-      this.worker.onerror = () => { this.unavailable = true; this.close(); };
+      this.worker.onerror = (event) => { event.preventDefault(); this.unavailable = true; this.close(); };
+      this.worker.onmessageerror = () => { this.unavailable = true; this.close(); };
       return this.worker;
     } catch { this.unavailable = true; return null; }
   }

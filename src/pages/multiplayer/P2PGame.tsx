@@ -1,9 +1,6 @@
-/**
- * Direct peer-to-peer game. The host is authoritative — it validates every
- * guest move and broadcasts the full state; the guest mirrors it into its own
- * GameController. Signaling is two pasted connection codes (see peer.ts).
- */
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { ActionButton } from '../../components/ActionButton';
+/** Host-validated direct play over an ordered WebRTC channel. */
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BoardAnimate } from '../../components/Board';
 import { GameOver } from '../../components/GameOver';
 import { GameReview } from '../../components/GameReview';
@@ -12,348 +9,233 @@ import { GameController } from '../../game/GameController';
 import { useControllerVersion, useOrientation } from '../../game/hooks';
 import { endReasonText } from '../../game/analysis';
 import { PeerConnection, PeerRole, PeerState } from '../../multiplayer/peer';
-import { BLACK, Color, WHITE } from '../../chess/constants';
+import { PeerMessage, acceptGuestMove, applyPeerState, cleanPeerName } from '../../multiplayer/protocol';
+import { Color, WHITE, other } from '../../chess/constants';
 import { endSoundFor, moveSoundName, sound } from '../../audio/sound';
 import { useSettings } from '../../storage/settings';
-import { gamesRepo, StoredGame } from '../../storage/db';
+import { dataRevision, gamesRepo } from '../../storage/db';
 import { exportPgn } from '../../chess/pgn';
-import { uid } from '../../utils';
+import { uid, copyText } from '../../utils';
 import { IconWifiOff } from '../../components/icons';
 import { ConnChip, DuelChrome } from './DuelChrome';
 import { GuestFlow, HostFlow } from './flows';
 import { fmtDur, outcomeOf, promoLetter, resultString, sqAlg, uciToAnim } from './shared';
 
+type Stage = 'lobby' | 'host-setup' | 'host-wait' | 'guest-setup' | 'guest-wait' | 'game';
+
 export function P2PGame({ onExit }: { onExit: () => void }) {
   const { toast } = useToast();
   const { settings } = useSettings();
-  const [stage, setStage] = useState<'lobby' | 'host-setup' | 'host-wait' | 'guest-setup' | 'guest-wait' | 'game'>('lobby');
+  const [stage, renderStage] = useState<Stage>('lobby');
+  const stageRef = useRef<Stage>('lobby');
+  const setStage = (value: Stage) => { stageRef.current = value; renderStage(value); };
   const [peerState, setPeerState] = useState<PeerState>('idle');
   const [peerError, setPeerError] = useState<string | null>(null);
   const [hostCode, setHostCode] = useState('');
   const [replyCode, setReplyCode] = useState('');
-
   const [myColor, setMyColor] = useState<Color>(WHITE);
-  const [peerName, setPeerName] = useState('Opponent');
+  const [peerName, renderPeerName] = useState('Opponent');
+  const peerNameRef = useRef('Opponent');
+  const setPeerName = (name: string) => { peerNameRef.current = name; renderPeerName(name); };
   const [isHost, setIsHost] = useState(true);
-  const [drawOfferedBy, setDrawOfferedBy] = useState<'me' | 'peer' | null>(null);
-  const [rematchOfferedBy, setRematchOfferedBy] = useState<'me' | 'peer' | null>(null);
-
+  const [drawOfferedBy, renderDraw] = useState<'me' | 'peer' | null>(null);
+  const drawRef = useRef<'me' | 'peer' | null>(null);
+  const setDrawOfferedBy = (value: 'me' | 'peer' | null) => { drawRef.current = value; renderDraw(value); };
+  const [rematchOfferedBy, renderRematch] = useState<'me' | 'peer' | null>(null);
+  const rematchRef = useRef<'me' | 'peer' | null>(null);
+  const setRematchOfferedBy = (value: 'me' | 'peer' | null) => { rematchRef.current = value; renderRematch(value); };
+  const rematchReady = useRef(false);
+  const [pending, renderPending] = useState(false);
+  const pendingMove = useRef<string | null>(null);
+  const setPending = (uci: string | null) => { pendingMove.current = uci; renderPending(uci !== null); };
   const peerRef = useRef<PeerConnection | null>(null);
   const roleRef = useRef<PeerRole>('host');
   const colorRef = useRef<Color>(WHITE);
   const nameRef = useRef('Player');
+  const gameIdRef = useRef('');
   const savedRef = useRef(false);
-
-  // One controller each side; guests replay the host's broadcast state.
+  const revision = useRef(dataRevision());
+  const helloSent = useRef(false);
+  const alive = useRef(true);
   const controller = useMemo(() => new GameController({ whiteName: 'White', blackName: 'Black' }), []);
   const version = useControllerVersion(controller);
-  const [, bumpRender] = useReducer((c: number) => c + 1, 0);
   const [animate, setAnimate] = useState<BoardAnimate | null>(null);
   const [orientation, flip] = useOrientation('white');
   const [gameOverOpen, setGameOverOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
-  const send = useCallback((msg: Record<string, unknown>): boolean => {
-    if (!peerRef.current?.send(msg)) {
-      toast('Connection lost — nothing was sent.', 'danger');
-      return false;
-    }
-    return true;
-  }, [toast]);
-
-  const broadcastState = useCallback(() => {
-    send({
-      t: 'state',
-      moves: controller.moves.map((m) => ({ san: m.san, uci: m.uci })),
-      whiteName: controller.config.whiteName,
-      blackName: controller.config.blackName,
-      winner: controller.end?.winner ?? null,
-      reason: controller.end?.reason ?? '',
-      turn: controller.turn,
-    });
-  }, [controller, send]);
-
-  const applyNetState = useCallback(
-    (net: {
-      moves: { san: string; uci: string }[];
-      whiteName: string;
-      blackName: string;
-      winner: 'white' | 'black' | null;
-      reason: string;
-      turn: Color;
-    }) => {
-      if (net.moves.length >= controller.moves.length) {
-        // Replay any new plies (usually just one).
-        for (let i = controller.moves.length; i < net.moves.length; i++) {
-          const rec = controller.applyUci(net.moves[i]!.uci);
-          if (!rec) break;
-          if (i === net.moves.length - 1) {
-            sound.play(moveSoundName(rec));
-            setAnimate(
-              settings.animateMoves
-                ? uciToAnim(net.moves[i]!.uci, rec.capture)
-                : null,
-            );
-          }
-        }
-      } else {
-        // Fewer plies than we have → rematch/reset.
-        controller.reset();
-      }
-      controller.rename(net.whiteName, net.blackName);
-      bumpRender();
-
-      // Terminal states the move replay can't detect (checkmate/stalemate/
-      // repetition are found organically while replaying the moves).
-      if (net.reason && controller.phase === 'playing') {
-        if (net.reason === 'resign') {
-          controller.resign(colorRef.current === WHITE ? BLACK : WHITE);
-        } else if (net.reason === 'disconnect') {
-          controller.endByDisconnect(colorRef.current);
-        } else {
-          controller.drawByAgreement();
-        }
-      }
-      if (controller.phase === 'ended' && !savedRef.current) {
-        savedRef.current = true;
-        setGameOverOpen(true);
-        sound.play(endSoundFor(controller.end, colorRef.current === WHITE ? 'white' : 'black'));
-        const game: StoredGame = {
-          id: uid(),
-          mode: 'p2p',
-          date: Date.now(),
-          whiteName: controller.config.whiteName,
-          blackName: controller.config.blackName,
-          startFen: controller.position.startFen,
-          moves: controller.moves,
-          outcome: outcomeOf(controller),
-          durationMs: controller.durationMs,
-        };
-        void gamesRepo.save(game);
-      }
-    },
-    [controller, settings.animateMoves],
-  );
-
-  const startRematchAsHost = useCallback(() => {
-    const next: Color = colorRef.current === WHITE ? BLACK : WHITE;
-    colorRef.current = next;
-    setMyColor(next);
-    controller.reset();
-    savedRef.current = false;
-    setGameOverOpen(false);
-    setDrawOfferedBy(null);
-    setRematchOfferedBy(null);
-    controller.rename(
-      next === WHITE ? nameRef.current : peerName,
-      next === WHITE ? peerName : nameRef.current,
-    );
-    sound.play('gameStart');
-    send({ t: 'start', guestColor: next === WHITE ? BLACK : WHITE, hostName: nameRef.current });
-    broadcastState();
-  }, [controller, peerName, broadcastState, send]);
-
-  const handleMessage = useCallback(
-    (msg: Record<string, unknown>) => {
-      const t = msg.t as string;
-      switch (t) {
-        // ---- handshake
-        case 'hello': {
-          // Host receives the guest's name → start the match.
-          if (roleRef.current === 'host') {
-            const guest = (msg.name as string) || 'Guest';
-            setPeerName(guest);
-            controller.rename(
-              colorRef.current === WHITE ? nameRef.current : guest,
-              colorRef.current === WHITE ? guest : nameRef.current,
-            );
-            send({ t: 'start', guestColor: colorRef.current === WHITE ? BLACK : WHITE, hostName: nameRef.current });
-            broadcastState();
-            setStage('game');
-            sound.play('gameStart');
-          }
-          break;
-        }
-        case 'start': {
-          // Guest receives match parameters (also used for rematch).
-          const guestColor = (msg.guestColor as Color) ?? BLACK;
-          colorRef.current = guestColor;
-          setMyColor(guestColor);
-          setPeerName((msg.hostName as string) || 'Host');
-          controller.reset();
-          savedRef.current = false;
-          setGameOverOpen(false);
-          setDrawOfferedBy(null);
-          setRematchOfferedBy(null);
-          setStage('game');
-          sound.play('gameStart');
-          break;
-        }
-        // ---- moves
-        case 'try': {
-          if (roleRef.current !== 'host' || controller.phase !== 'playing') break;
-          const rec = controller.applyUci(msg.uci as string);
-          if (rec) {
-            sound.play(moveSoundName(rec));
-            setAnimate(settings.animateMoves ? uciToAnim(rec.uci, rec.capture) : null);
-            broadcastState();
-            if (controller.end && !savedRef.current) {
-              savedRef.current = true;
-              setGameOverOpen(true);
-              sound.play(endSoundFor(controller.end, colorRef.current === WHITE ? 'white' : 'black'));
-              void gamesRepo.save({
-                id: uid(),
-                mode: 'p2p',
-                date: Date.now(),
-                whiteName: controller.config.whiteName,
-                blackName: controller.config.blackName,
-                startFen: controller.position.startFen,
-                moves: controller.moves,
-                outcome: outcomeOf(controller),
-                durationMs: controller.durationMs,
-              });
-            }
-          } else {
-            send({ t: 'rejected' });
-          }
-          break;
-        }
-        case 'state': {
-          if (roleRef.current === 'guest') {
-            applyNetState({
-              moves: (msg.moves as { san: string; uci: string }[]) ?? [],
-              whiteName: (msg.whiteName as string) || 'White',
-              blackName: (msg.blackName as string) || 'Black',
-              winner: (msg.winner as 'white' | 'black' | null) ?? null,
-              reason: (msg.reason as string) ?? '',
-              turn: (msg.turn as Color) ?? WHITE,
-            });
-          }
-          break;
-        }
-        case 'rejected': {
-          toast('The host rejected that move.', 'danger');
-          break;
-        }
-        // ---- protocol
-        case 'resign': {
-          // The sender resigned → their color loses.
-          controller.resign(colorRef.current === WHITE ? BLACK : WHITE);
-          if (roleRef.current === 'host') broadcastState();
-          if (!savedRef.current) {
-            savedRef.current = true;
-            setGameOverOpen(true);
-            sound.play(endSoundFor(controller.end, colorRef.current === WHITE ? 'white' : 'black'));
-            void gamesRepo.save({
-              id: uid(),
-              mode: 'p2p',
-              date: Date.now(),
-              whiteName: controller.config.whiteName,
-              blackName: controller.config.blackName,
-              startFen: controller.position.startFen,
-              moves: controller.moves,
-              outcome: outcomeOf(controller),
-              durationMs: controller.durationMs,
-            });
-          }
-          break;
-        }
-        case 'draw-offer': {
-          setDrawOfferedBy('peer');
-          sound.play('notify');
-          break;
-        }
-        case 'draw-accept': {
-          controller.drawByAgreement();
-          setDrawOfferedBy(null);
-          if (roleRef.current === 'host') broadcastState();
-          break;
-        }
-        case 'draw-decline': {
-          setDrawOfferedBy(null);
-          toast('Draw declined.', 'default');
-          break;
-        }
-        case 'rematch-offer': {
-          setRematchOfferedBy('peer');
-          sound.play('notify');
-          break;
-        }
-        case 'rematch-accept': {
-          if (roleRef.current === 'host') startRematchAsHost();
-          break;
-        }
-        case 'rematch-decline': {
-          setRematchOfferedBy(null);
-          toast('Rematch declined.', 'default');
-          break;
-        }
-        default:
-          break;
-      }
-    },
-    [applyNetState, broadcastState, controller, send, settings.animateMoves, startRematchAsHost, toast],
-  );
-
-  const makePeer = useCallback(
-    (role: PeerRole) => {
-      peerRef.current?.teardown();
-      const peer = new PeerConnection(role, {
-        onState: (st, detail) => {
-          setPeerState(st);
-          if (st === 'failed' || st === 'disconnected') {
-            setPeerError(detail ?? null);
-            // End any live game — moves can no longer sync.
-            if (controller.phase === 'playing' && stage === 'game') {
-              controller.endByDisconnect(colorRef.current);
-              if (roleRef.current === 'host') broadcastState();
-              if (!savedRef.current) {
-                savedRef.current = true;
-                setGameOverOpen(true);
-                sound.play(endSoundFor(controller.end, colorRef.current === WHITE ? 'white' : 'black'));
-                void gamesRepo.save({
-                  id: uid(),
-                  mode: 'p2p',
-                  date: Date.now(),
-                  whiteName: controller.config.whiteName,
-                  blackName: controller.config.blackName,
-                  startFen: controller.position.startFen,
-                  moves: controller.moves,
-                  outcome: outcomeOf(controller),
-                  durationMs: controller.durationMs,
-                });
-              }
-            }
-          }
-        },
-        onMessage: handleMessage,
-      });
-      peerRef.current = peer;
-      roleRef.current = role;
-      return peer;
-    },
-    [broadcastState, controller, handleMessage, stage],
-  );
-
-  useEffect(() => () => peerRef.current?.teardown(), []);
-
-  const saveOnEnd = () => {
-    if (savedRef.current) return;
-    savedRef.current = true;
-    setGameOverOpen(true);
-    sound.play(endSoundFor(controller.end, colorRef.current === WHITE ? 'white' : 'black'));
-    void gamesRepo.save({
-      id: uid(),
-      mode: 'p2p',
-      date: Date.now(),
-      whiteName: controller.config.whiteName,
-      blackName: controller.config.blackName,
-      startFen: controller.position.startFen,
-      moves: controller.moves,
-      outcome: outcomeOf(controller),
-      durationMs: controller.durationMs,
-    });
+  const send = (message: PeerMessage): boolean => {
+    if (peerRef.current?.send(message)) return true;
+    toast('The message could not be sent. Check the connection.', 'danger');
+    return false;
   };
+  const broadcastState = () => {
+    if (!gameIdRef.current) return;
+    send({ t: 'state', gameId: gameIdRef.current, moves: controller.moves.map((m) => m.uci),
+      whiteName: controller.config.whiteName, blackName: controller.config.blackName,
+      winner: controller.end?.winner ?? null, reason: controller.end?.reason ?? '', turn: controller.turn });
+  };
+  const saveOnEnd = (show = true) => {
+    if (!controller.end || savedRef.current) return;
+    savedRef.current = true;
+    if (show) {
+      setGameOverOpen(true); setDrawOfferedBy(null); setPending(null);
+      sound.play(endSoundFor(controller.end, colorRef.current === WHITE ? 'white' : 'black'));
+    }
+    void gamesRepo.save({ id: uid(), mode: 'p2p', date: Date.now(),
+      whiteName: controller.config.whiteName, blackName: controller.config.blackName,
+      startFen: controller.position.startFen, moves: controller.moves.map((m) => ({ ...m })),
+      outcome: outcomeOf(controller), durationMs: controller.durationMs }, revision.current);
+  };
+  const endRef = useRef(() => saveOnEnd()); endRef.current = () => saveOnEnd();
+  useEffect(() => controller.subscribe(() => {
+    if (stageRef.current === 'game' && controller.phase === 'ended') endRef.current();
+  }), [controller]);
+
+  const clearRound = () => {
+    savedRef.current = false; setGameOverOpen(false); setReviewOpen(false); setAnimate(null);
+    setDrawOfferedBy(null); setRematchOfferedBy(null); rematchReady.current = false; setPending(null);
+    controller.reset();
+  };
+  const expireDraw = (mover: Color) => {
+    if ((drawRef.current === 'me' && mover !== colorRef.current) || (drawRef.current === 'peer' && mover === colorRef.current)) setDrawOfferedBy(null);
+  };
+  const startRematchAsHost = () => {
+    if (roleRef.current !== 'host' || controller.phase !== 'ended' || !peerRef.current?.isOpen) return;
+    const next = other(colorRef.current); colorRef.current = next; setMyColor(next);
+    gameIdRef.current = uid(); clearRound();
+    controller.rename(next === WHITE ? nameRef.current : peerNameRef.current, next === WHITE ? peerNameRef.current : nameRef.current);
+    send({ t: 'start', gameId: gameIdRef.current, guestColor: other(next), hostName: nameRef.current });
+    broadcastState(); sound.play('gameStart');
+  };
+  const respondToRematch = (accept: boolean) => {
+    if (rematchRef.current !== 'peer' || controller.phase !== 'ended') return;
+    if (!send({ t: accept ? 'rematch-accept' : 'rematch-decline', gameId: gameIdRef.current })) return;
+    if (accept) {
+      rematchReady.current = true;
+      if (roleRef.current === 'host') startRematchAsHost();
+    }
+    setRematchOfferedBy(null);
+  };
+  const handleMessage = (message: PeerMessage) => {
+    if (!alive.current) return;
+    if (message.t === 'hello') {
+      if (roleRef.current !== 'host' || stageRef.current !== 'host-wait') return;
+      setPeerName(message.name);
+      controller.rename(colorRef.current === WHITE ? nameRef.current : message.name, colorRef.current === WHITE ? message.name : nameRef.current);
+      setStage('game');
+      send({ t: 'start', gameId: gameIdRef.current, guestColor: other(colorRef.current), hostName: nameRef.current });
+      broadcastState(); sound.play('gameStart'); return;
+    }
+    if (message.t === 'start') {
+      if (roleRef.current !== 'guest' || message.gameId === gameIdRef.current) return;
+      const initial = stageRef.current === 'guest-wait' && !gameIdRef.current;
+      if (!initial && !(stageRef.current === 'game' && controller.phase === 'ended' && rematchReady.current)) return;
+      colorRef.current = message.guestColor; setMyColor(message.guestColor); setPeerName(message.hostName);
+      gameIdRef.current = message.gameId; clearRound();
+      controller.rename(message.guestColor === WHITE ? nameRef.current : message.hostName, message.guestColor === WHITE ? message.hostName : nameRef.current);
+      setStage('game'); sound.play('gameStart'); return;
+    }
+    if (stageRef.current !== 'game' || message.gameId !== gameIdRef.current) return;
+    switch (message.t) {
+      case 'try': {
+        if (roleRef.current !== 'host') return;
+        const mover = controller.turn;
+        const rec = acceptGuestMove(controller, message, colorRef.current, gameIdRef.current);
+        if (!rec) { send({ t: 'rejected', gameId: gameIdRef.current }); return; }
+        expireDraw(mover); sound.play(moveSoundName(rec));
+        setAnimate(settings.animateMoves ? uciToAnim(rec.uci, rec.capture) : null);
+        broadcastState(); break;
+      }
+      case 'state': {
+        if (roleRef.current !== 'guest') return;
+        const count = controller.moveCount, mover = controller.turn;
+        if (!applyPeerState(controller, message, gameIdRef.current, colorRef.current, pendingMove.current)) {
+          setPeerError('The game state did not match. Create a new room to reconnect.'); setPeerState('failed'); return;
+        }
+        if (controller.moveCount > count) {
+          const rec = controller.moves[controller.moveCount - 1]!;
+          setPending(null); expireDraw(mover); sound.play(moveSoundName(rec));
+          setAnimate(settings.animateMoves ? uciToAnim(rec.uci, rec.capture) : null);
+        }
+        break;
+      }
+      case 'rejected':
+        if (roleRef.current === 'guest') { setPending(null); toast('That move was rejected.', 'danger'); } break;
+      case 'resign':
+        if (controller.phase === 'playing') { controller.resign(other(colorRef.current)); if (roleRef.current === 'host') broadcastState(); } break;
+      case 'draw-offer':
+        if (controller.phase !== 'playing') return;
+        if (drawRef.current === 'me') {
+          send({ t: 'draw-accept', gameId: gameIdRef.current }); controller.drawByAgreement();
+          if (roleRef.current === 'host') broadcastState();
+        } else { setDrawOfferedBy('peer'); sound.play('notify'); } break;
+      case 'draw-accept':
+        if (controller.phase === 'playing' && drawRef.current === 'me') {
+          controller.drawByAgreement(); setDrawOfferedBy(null); if (roleRef.current === 'host') broadcastState();
+        } break;
+      case 'draw-decline':
+        if (drawRef.current === 'me') { setDrawOfferedBy(null); toast('Draw declined.'); } break;
+      case 'rematch-offer':
+        if (controller.phase !== 'ended') return;
+        if (rematchRef.current === 'me') {
+          rematchReady.current = true;
+          if (roleRef.current === 'host') startRematchAsHost();
+          else send({ t: 'rematch-accept', gameId: gameIdRef.current });
+        } else { setRematchOfferedBy('peer'); sound.play('notify'); } break;
+      case 'rematch-accept':
+        if (controller.phase === 'ended' && rematchRef.current === 'me') {
+          rematchReady.current = true;
+          if (roleRef.current === 'host') startRematchAsHost();
+        } break;
+      case 'rematch-decline':
+        if (rematchRef.current === 'me') { setRematchOfferedBy(null); rematchReady.current = false; toast('Rematch declined.'); } break;
+    }
+  };
+  const messageRef = useRef(handleMessage); messageRef.current = handleMessage;
+  const stateHandler = (state: PeerState, detail?: string) => {
+    if (!alive.current) return;
+    setPeerState(state);
+    if (state === 'connected' && roleRef.current === 'guest' && peerRef.current?.isOpen && !helloSent.current) {
+      helloSent.current = true; send({ t: 'hello', name: nameRef.current });
+    }
+    if (state === 'failed' || state === 'disconnected') {
+      setPeerError(detail ?? 'Connection lost.');
+      if (controller.phase === 'playing' && stageRef.current === 'game') controller.endByDisconnect(other(colorRef.current));
+    }
+  };
+  const stateRef = useRef(stateHandler); stateRef.current = stateHandler;
+  const makePeer = (role: PeerRole) => {
+    peerRef.current?.teardown(); roleRef.current = role; helloSent.current = false;
+    gameIdRef.current = role === 'host' ? uid() : ''; clearRound();
+    const peer = new PeerConnection(role, {
+      onState: (state, detail) => stateRef.current(state, detail),
+      onMessage: (message) => messageRef.current(message),
+    });
+    peerRef.current = peer; return peer;
+  };
+  const leaveRoom = () => {
+    if (stageRef.current === 'game' && controller.phase === 'playing') {
+      controller.resign(colorRef.current);
+      peerRef.current?.send({ t: 'resign', gameId: gameIdRef.current });
+      saveOnEnd(false);
+    }
+    setStage('lobby'); peerRef.current?.teardown(); peerRef.current = null;
+    setHostCode(''); setReplyCode(''); setPeerState('idle'); setPeerError(null);
+    gameIdRef.current = ''; setPeerName('Opponent'); clearRound();
+  };
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      if (stageRef.current === 'game' && controller.phase === 'playing') {
+        controller.resign(colorRef.current);
+        peerRef.current?.send({ t: 'resign', gameId: gameIdRef.current });
+        saveOnEnd(false);
+      }
+      peerRef.current?.teardown(); peerRef.current = null;
+    };
+  }, [controller]);
 
   // --- lobby (pre-connection) ---
   if (stage !== 'game') {
@@ -402,16 +284,18 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
             state={peerState}
             error={peerError}
             onCreate={async (name, color) => {
-              nameRef.current = name;
+              nameRef.current = cleanPeerName(name, 'Host');
               colorRef.current = color;
               setMyColor(color);
               const peer = makePeer('host');
               try {
                 setPeerError(null);
-                const code = await peer.createOffer(name);
+                const code = await peer.createOffer(nameRef.current);
+                if (!alive.current || peerRef.current !== peer) return;
                 setHostCode(code);
                 setStage('host-wait');
               } catch (err) {
+                if (!alive.current || peerRef.current !== peer) return;
                 setPeerError(err instanceof Error ? err.message : 'Could not create the room.');
                 setPeerState('failed');
               }
@@ -433,23 +317,15 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
             state={peerState}
             error={peerError}
             onJoin={async (code, name) => {
-              nameRef.current = name;
+              nameRef.current = cleanPeerName(name, 'Guest');
               const peer = makePeer('guest');
               try {
                 setPeerError(null);
-                const replyCode = await peer.acceptOffer(code, name);
-                setReplyCode(replyCode);
-                setStage('guest-wait');
-                setPeerState('connecting');
-                // Greet the host as soon as the channel opens.
-                const iv = window.setInterval(() => {
-                  if (peerRef.current?.isOpen) {
-                    send({ t: 'hello', name });
-                    window.clearInterval(iv);
-                  }
-                }, 150);
-                window.setTimeout(() => window.clearInterval(iv), 20000);
+                const reply = await peer.acceptOffer(code, nameRef.current);
+                if (!alive.current || peerRef.current !== peer) return;
+                setReplyCode(reply); setStage('guest-wait');
               } catch (err) {
+                if (!alive.current || peerRef.current !== peer) return;
                 setPeerError(err instanceof Error ? err.message : 'Could not join with that code.');
                 setPeerState('failed');
               }
@@ -461,11 +337,12 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
           <div className="panel-title">How the connection works</div>
           <div className="panel-pad">
             <ol className="flow-steps">
-              <li><strong>Host creates a room.</strong> CHECKMATE generates a connection code — a compressed description of how to reach the host's browser.</li>
+              <li><strong>Host creates a room.</strong> CHECKMATE generates a connection code — an encoded description of how to reach the host's browser.</li>
               <li><strong>Host sends the code</strong> to the guest — any chat app, email, or across the table.</li>
               <li><strong>Guest pastes the code</strong> and answers with a reply code.</li>
               <li><strong>Host pastes the reply.</strong> The two browsers open a direct WebRTC data channel. Every move then travels peer-to-peer — no server sees the game.</li>
             </ol>
+            <p className="small muted mt-8">Connection codes can contain temporary network addresses. Share them only with the person you intend to play.</p>
             <p className="small muted mt-8">
               Because there is no relay or matchmaking service at all, both browsers must be able to
               reach each other directly — the same machine or the same local network works best. If
@@ -480,7 +357,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
   // --- game ---
   const myTurn = controller.phase === 'playing' && controller.turn === myColor;
   const connected = peerState === 'connected';
-  const interactive = myTurn && connected;
+  const interactive = myTurn && connected && !pending;
 
   return (
     <>
@@ -504,7 +381,9 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
         animate={animate}
         interactive={interactive}
         onMove={(from, to, promo) => {
+          if (!peerRef.current?.isOpen || controller.phase !== 'playing' || controller.turn !== colorRef.current || pendingMove.current) return false;
           if (roleRef.current === 'host') {
+            const mover = controller.turn;
             const captured = controller.position.pieceAt(to);
             const ok = controller.tryMove(from, to, promo);
             if (!ok) return false;
@@ -514,13 +393,15 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                 ? { from, to, capturedPiece: captured, capturedSquare: to }
                 : { from: to, to, capturedPiece: 0, capturedSquare: -1 },
             );
-            sound.play(moveSoundName(rec));
+            expireDraw(mover); sound.play(moveSoundName(rec));
             broadcastState();
             if (controller.end) saveOnEnd();
             return true;
           }
           // Guest: ask the host to validate and apply.
-          return send({ t: 'try', uci: sqAlg(from) + sqAlg(to) + promoLetter(promo) });
+          const uci = sqAlg(from) + sqAlg(to) + promoLetter(promo);
+          if (!send({ t: 'try', gameId: gameIdRef.current, ply: controller.moveCount, uci })) return false;
+          setPending(uci); return true;
         }}
         onFlip={flip}
         onIllegal={() => sound.play('illegal')}
@@ -532,10 +413,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                 <button
                   className="btn btn-sm"
                   onClick={() => {
-                    peerRef.current?.teardown();
-                    setStage('lobby');
-                    setPeerState('idle');
-                    setPeerError(null);
+                    leaveRoom();
                   }}
                 >
                   RECONNECT
@@ -549,8 +427,8 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                 <button
                   className="btn btn-sm btn-primary"
                   onClick={() => {
+                    if (!send({ t: 'draw-accept', gameId: gameIdRef.current })) return;
                     controller.drawByAgreement();
-                    send({ t: 'draw-accept' });
                     if (roleRef.current === 'host') broadcastState();
                     setDrawOfferedBy(null);
                   }}
@@ -560,7 +438,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                 <button
                   className="btn btn-sm"
                   onClick={() => {
-                    send({ t: 'draw-decline' });
+                    send({ t: 'draw-decline', gameId: gameIdRef.current });
                     setDrawOfferedBy(null);
                   }}
                 >
@@ -575,14 +453,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                 <button
                   className="btn btn-sm btn-primary"
                   onClick={() => {
-                    send({ t: 'rematch-accept' });
-                    if (roleRef.current === 'host') startRematchAsHost();
-                    else {
-                      controller.reset();
-                      savedRef.current = false;
-                      setGameOverOpen(false);
-                      setRematchOfferedBy(null);
-                    }
+                    respondToRematch(true);
                   }}
                 >
                   ACCEPT
@@ -590,8 +461,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                 <button
                   className="btn btn-sm"
                   onClick={() => {
-                    send({ t: 'rematch-decline' });
-                    setRematchOfferedBy(null);
+                    respondToRematch(false);
                   }}
                 >
                   DECLINE
@@ -603,6 +473,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
         gameOver={
           gameOverOpen ? (
             <GameOver
+              onClose={() => setGameOverOpen(false)}
               winner={controller.end?.winner ?? null}
               outcome={
                 controller.end?.winner === null
@@ -628,24 +499,31 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
               {controller.moves.length > 0 && (
                 <button className="btn" onClick={() => setReviewOpen(true)}>AUTO-REVIEW</button>
               )}
-              {rematchOfferedBy === 'me' ? (
+              {rematchOfferedBy === 'peer' ? (
+                <div className="stack gap-8">
+                  <p className="small muted">{peerName} wants a rematch.</p>
+                  <div className="row">
+                    <ActionButton className="btn btn-primary" blockedReason={!connected && 'The peer connection is closed. Choose NEW GAME to exchange fresh connection codes.'} onClick={() => respondToRematch(true)}>ACCEPT REMATCH</ActionButton>
+                    <ActionButton className="btn" blockedReason={!connected && 'The peer connection is closed. Choose NEW GAME to exchange fresh connection codes.'} onClick={() => respondToRematch(false)}>DECLINE REMATCH</ActionButton>
+                  </div>
+                </div>
+              ) : rematchOfferedBy === 'me' ? (
                 <div className="tiny faint">Waiting for {peerName} to accept…</div>
               ) : (
-                <button
+                <ActionButton
                   className="btn btn-primary"
+                  blockedReason={!connected && 'The peer connection is closed. Choose NEW GAME to exchange fresh connection codes.'}
                   onClick={() => {
-                    setRematchOfferedBy('me');
-                    send({ t: 'rematch-offer' });
+                    if (send({ t: 'rematch-offer', gameId: gameIdRef.current })) setRematchOfferedBy('me');
                   }}
                 >
                   REMATCH
-                </button>
+                </ActionButton>
               )}
               <button
                 className="btn"
                 onClick={() =>
-                  void navigator.clipboard
-                    .writeText(
+                  void copyText(
                       exportPgn(
                         controller.position,
                         {
@@ -657,8 +535,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
                         resultString(controller),
                       ),
                     )
-                    .then(() => toast('PGN copied.', 'success'))
-                    .catch(() => toast('Could not copy PGN.', 'danger'))
+                    .then((ok) => toast(ok ? 'PGN copied.' : 'Could not copy PGN.', ok ? 'success' : 'danger'))
                 }
               >
                 COPY PGN
@@ -666,10 +543,7 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
               <button
                 className="btn btn-ghost"
                 onClick={() => {
-                  peerRef.current?.teardown();
-                  setStage('lobby');
-                  setPeerState('idle');
-                  setPeerError(null);
+                  leaveRoom();
                 }}
               >
                 NEW GAME
@@ -679,31 +553,31 @@ export function P2PGame({ onExit }: { onExit: () => void }) {
         }
       >
         <div className="row wrap">
-          <button
+          {controller.phase === 'ended' && !gameOverOpen && <button className="btn btn-sm" onClick={() => setGameOverOpen(true)}>RESULT</button>}
+          <ActionButton
             className="btn btn-sm btn-danger"
-            disabled={controller.phase !== 'playing' || !connected}
+            blockedReason={!connected ? 'The peer connection is closed. Choose RECONNECT to create a fresh room.' : controller.phase !== 'playing' && 'This game has already ended. Open RESULT to arrange a rematch or start a new game.'}
             onClick={() => {
               controller.resign(myColor);
-              send({ t: 'resign' });
+              send({ t: 'resign', gameId: gameIdRef.current });
               if (roleRef.current === 'host') broadcastState();
               saveOnEnd();
             }}
           >
             RESIGN
-          </button>
+          </ActionButton>
           {drawOfferedBy === 'me' ? (
             <span className="tiny faint" style={{ alignSelf: 'center' }}>Draw offer sent…</span>
           ) : (
-            <button
+            <ActionButton
               className="btn btn-sm"
-              disabled={controller.phase !== 'playing' || !connected}
+              blockedReason={!connected ? 'The peer connection is closed. Choose RECONNECT to create a fresh room.' : controller.phase !== 'playing' && 'This game has already ended. Open RESULT to arrange a rematch or start a new game.'}
               onClick={() => {
-                setDrawOfferedBy('me');
-                send({ t: 'draw-offer' });
+                if (send({ t: 'draw-offer', gameId: gameIdRef.current })) setDrawOfferedBy('me');
               }}
             >
               OFFER DRAW
-            </button>
+            </ActionButton>
           )}
         </div>
       </DuelChrome>

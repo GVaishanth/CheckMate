@@ -34,10 +34,10 @@ export interface PlyAnnotation {
 }
 
 const GOOD_LINES = [
-  "The engine's first choice. Nothing better exists.",
-  'Exactly what the position demands.',
-  'Precise. Every square accounted for.',
-  'Clean — the strongest continuation.',
+  "Among the engine's top choices.",
+  'A precise continuation.',
+  'Little lost at this search depth.',
+  'Clean — one of the strongest moves found.',
 ];
 
 const OK_LINES = [
@@ -61,8 +61,8 @@ const SLIP_LINES = [
 
 const CRASH_LINES = [
   'A crash. {B} was necessary.',
-  'This loses material. {B} first.',
-  'The tactic punishes this — {B} avoids it.',
+  'A costly move. {B} was stronger.',
+  'The position turns — consider {B}.',
 ];
 
 /** Deterministic per-ply commentary — same game, same lines, every replay. */
@@ -123,7 +123,7 @@ export function buildAnnotations(
 }
 
 export interface SideSummary {
-  accuracy: number;
+  accuracy: number | null;
   performance: number | null;
   counts: Record<MoveKind, number>;
 }
@@ -133,18 +133,19 @@ export interface ReviewSummary {
   black: SideSummary;
 }
 
-export function summarizeReview(annotations: PlyAnnotation[], losses: number[]): ReviewSummary {
+export function summarizeReview(annotations: PlyAnnotation[], losses: number[], firstMover: 'white' | 'black' = 'white'): ReviewSummary {
   const side = (white: boolean): SideSummary => {
     const counts: Record<MoveKind, number> = { best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
     let total = 0;
     let sum = 0;
     annotations.forEach((a, i) => {
-      if ((i % 2 === 0) !== white) return;
+      const moverIsWhite = i % 2 === 0 ? firstMover === 'white' : firstMover !== 'white';
+      if (moverIsWhite !== white) return;
       counts[a.kind]++;
       total++;
       sum += losses[i] ?? 0;
     });
-    if (total === 0) return { accuracy: 100, performance: null, counts };
+    if (total === 0) return { accuracy: null, performance: null, counts };
     const avg = sum / total;
     return {
       accuracy: Math.round(accuracyFromLoss(avg)),

@@ -31,7 +31,7 @@ export class Position {
   board = new Int8Array(128);
   stm: Color = WHITE;
   castling: number = CASTLE_ALL;
-  ep = -1; // en-passant target square, kept only when a capture is pseudo-legal
+  ep = -1; // kept only when a legal en-passant capture exists
   halfmove = 0;
   fullmove = 1;
   variant: ChessVariant = 'standard';
@@ -59,21 +59,26 @@ export class Position {
   private legalCache: Move[] | null = null;
   private genScratch = new Int32Array(256);
 
-  // ------------------------------------------------------------------ setup
-
   static initial(): Position {
     return Position.fromFen(START_FEN);
   }
 
   static fromFen(fen: string): Position {
     const p = new Position();
-    p.loadFen(fen);
+    p.parseFen(fen);
     return p;
   }
 
   loadFen(fen: string): void {
+    const next = Position.fromFen(fen);
+    next.applyVariant(this.variant);
+    this.copyFrom(next);
+  }
+
+  private parseFen(fen: string): void {
+    if (typeof fen !== 'string' || fen.length > 512) throw new ChessError('Invalid FEN');
     const parts = fen.trim().split(/\s+/);
-    if (parts.length < 4) throw new ChessError(`FEN needs at least 4 fields, got ${parts.length}`);
+    if (parts.length < 4 || parts.length > 6) throw new ChessError('FEN needs four to six fields');
     const [placement, stmField, castleField, epField, halfmoveField, fullmoveField] = parts;
 
     this.board.fill(EMPTY);
@@ -92,6 +97,7 @@ export class Position {
         const lower = ch.toLowerCase();
         const type = { p: PAWN, n: KNIGHT, b: 3, r: 4, q: 5, k: KING }[lower as 'p' | 'n' | 'b' | 'r' | 'q' | 'k'];
         if (!type) throw new ChessError(`Unknown piece "${ch}" in FEN`);
+        if (type === PAWN && (rank === 0 || rank === 7)) throw new ChessError('A pawn cannot occupy the first or eighth rank');
         this.board[(rank << 4) | file] = makePiece(type as PieceType, ch === lower ? BLACK : WHITE);
         file++;
       }
@@ -105,19 +111,20 @@ export class Position {
     if (castleField !== '-') {
       for (const ch of castleField) {
         const bit = { K: CASTLE_WK, Q: CASTLE_WQ, k: CASTLE_BK, q: CASTLE_BQ }[ch as 'K' | 'Q' | 'k' | 'q'];
-        if (!bit) throw new ChessError(`Bad castling field "${castleField}"`);
+        if (!bit || (this.castling & bit)) throw new ChessError(`Bad castling field "${castleField}"`);
         this.castling |= bit;
       }
     }
 
     this.ep = -1;
     if (epField && epField !== '-') {
-      if (!/^[a-h][36]$/.test(epField)) throw new ChessError(`Bad en-passant square "${epField}"`);
+      if (!(this.stm === WHITE ? /^[a-h]6$/ : /^[a-h]3$/).test(epField)) throw new ChessError(`Bad en-passant square "${epField}"`);
       this.ep = fromAlgebraic(epField);
     }
 
     this.halfmove = halfmoveField !== undefined ? this.parseCount(halfmoveField, 'halfmove clock') : 0;
-    this.fullmove = fullmoveField !== undefined ? Math.max(1, this.parseCount(fullmoveField, 'fullmove')) : 1;
+    this.fullmove = fullmoveField !== undefined ? this.parseCount(fullmoveField, 'fullmove') : 1;
+    if (this.fullmove < 1) throw new ChessError('The fullmove number must be at least one');
 
     // Derived state.
     let wk = -1;
@@ -136,7 +143,7 @@ export class Position {
       this.pstScore[0][c] += pstWithMaterial(piece, sq, 0);
       this.pstScore[1][c] += pstWithMaterial(piece, sq, 1);
     }
-    if (wk < 0 || bk < 0) throw new ChessError('FEN must contain both kings');
+    if (this.counts[K_W] !== 1 || this.counts[K_B] !== 1) throw new ChessError('FEN must contain exactly one king of each color');
     if (Math.abs(rankOf(wk) - rankOf(bk)) <= 1 && Math.abs((wk & 7) - (bk & 7)) <= 1) {
       throw new ChessError('Kings adjacent in FEN');
     }
@@ -146,10 +153,24 @@ export class Position {
       throw new ChessError('Illegal FEN: the side not to move is in check');
     }
 
-    // Normalize: drop an en-passant square no pawn can pseudo-legally capture.
-    if (this.ep >= 0 && !this.epCapturable()) this.ep = -1;
+    if (this.board[0x04] !== K_W) this.castling &= ~(CASTLE_WK | CASTLE_WQ);
+    if (this.board[0x74] !== K_B) this.castling &= ~(CASTLE_BK | CASTLE_BQ);
+    if (this.board[0x07] !== R_W) this.castling &= ~CASTLE_WK;
+    if (this.board[0x00] !== R_W) this.castling &= ~CASTLE_WQ;
+    if (this.board[0x77] !== R_B) this.castling &= ~CASTLE_BK;
+    if (this.board[0x70] !== R_B) this.castling &= ~CASTLE_BQ;
+    if (this.ep >= 0) {
+      const step = this.stm === WHITE ? 16 : -16;
+      if (this.board[this.ep] || this.board[this.ep - step] !== makePiece(PAWN, other(this.stm)) || this.board[this.ep + step]) {
+        throw new ChessError('Invalid en-passant position');
+      }
+      if (!this.epCapturable(this.ep, this.stm)) this.ep = -1;
+    }
 
     this.ply = 0;
+    this.moves = [];
+    this.checksGiven = [0, 0];
+    this.startFen = this.fen();
     this.undoSp = 0;
     this.legalCache = null;
     this.computeHash();
@@ -158,7 +179,9 @@ export class Position {
 
   private parseCount(s: string, what: string): number {
     if (!/^\d+$/.test(s)) throw new ChessError(`Bad ${what} "${s}"`);
-    return parseInt(s, 10);
+    const n = Number(s);
+    if (!Number.isSafeInteger(n)) throw new ChessError(`Bad ${what}`);
+    return n;
   }
 
   private variantId(): number {
@@ -218,7 +241,9 @@ export class Position {
    * history root stays consistent.
    */
   applyVariant(v: ChessVariant): void {
+    if (!['standard', 'three-check', 'koth'].includes(v)) throw new ChessError('Unsupported variant');
     if (v === this.variant) return;
+    if (this.undoSp || this.ply) throw new ChessError('Change variants before making a move');
     this.variant = v;
     this.checksGiven = [0, 0];
     this.computeHash();
@@ -228,27 +253,32 @@ export class Position {
 
   clone(): Position {
     const p = new Position();
-    p.variant = this.variant;
-    p.checksGiven = [this.checksGiven[0], this.checksGiven[1]];
-    p.board.set(this.board);
-    p.stm = this.stm;
-    p.castling = this.castling;
-    p.ep = this.ep;
-    p.halfmove = this.halfmove;
-    p.fullmove = this.fullmove;
-    p.kings = [this.kings[0], this.kings[1]];
-    p.hash = { lo: this.hash.lo, hi: this.hash.hi };
-    p.ply = this.ply;
-    p.hashHistory = this.hashHistory.slice();
-    p.undoSp = 0;
-    p.legalCache = null;
-    p.counts.set(this.counts);
-    p.pstScore[0].set(this.pstScore[0]);
-    p.pstScore[1].set(this.pstScore[1]);
+    p.copyFrom(this);
     return p;
   }
 
-  // ---------------------------------------------------------------- attacks
+  private copyFrom(p: Position): void {
+    this.variant = p.variant;
+    this.checksGiven = [...p.checksGiven];
+    this.board.set(p.board);
+    this.stm = p.stm;
+    this.castling = p.castling;
+    this.ep = p.ep;
+    this.halfmove = p.halfmove;
+    this.fullmove = p.fullmove;
+    this.kings = [...p.kings];
+    this.hash = { ...p.hash };
+    this.ply = p.ply;
+    this.startFen = p.startFen;
+    this.moves = p.moves.slice();
+    this.hashHistory = p.hashHistory.slice();
+    this.undo = p.undo.slice(0, p.undoSp).map((entry) => ({ ...entry }));
+    this.undoSp = p.undoSp;
+    this.legalCache = null;
+    this.counts.set(p.counts);
+    this.pstScore[0].set(p.pstScore[0]);
+    this.pstScore[1].set(p.pstScore[1]);
+  }
 
   /** Is `sq` attacked by any piece of color `by`? Hot path — keep tight. */
   isSquareAttacked(sq: number, by: Color): boolean {
@@ -305,8 +335,6 @@ export class Position {
   inCheck(color: Color = this.stm): boolean {
     return this.isSquareAttacked(this.kings[color], other(color));
   }
-
-  // -------------------------------------------------------- move generation
 
   /** Pseudo-legal move generation into `out`; returns move count. Hot path. */
   generateInto(out: Int32Array, capturesOnly = false): number {
@@ -450,15 +478,22 @@ export class Position {
     return this.getLegalMoves().filter((m) => m.from === sq);
   }
 
+  capturedBy(color: Color): number[] {
+    const captured: number[] = [];
+    for (let i = 0; i < this.undoSp; i++) {
+      const piece = this.undo[i]!.captured;
+      if (piece && colorOf(piece) !== color) captured.push(piece);
+    }
+    return captured;
+  }
+
   /** Finds the legal move matching from/to/promo, or null. */
   findMove(from: number, to: number, promo: PieceType | null = null): Move | null {
     for (const m of this.getLegalMoves()) {
-      if (m.from === from && m.to === to && (!promo || m.promo === promo)) return m;
+      if (m.from === from && m.to === to && m.promo === promo) return m;
     }
     return null;
   }
-
-  // -------------------------------------------------------------- make/undo
 
   private growUndo(): UndoEntry {
     if (this.undoSp >= this.undo.length) {
@@ -507,8 +542,8 @@ export class Position {
       b[rookFrom] = EMPTY;
       b[rookTo] = rook;
       hashPiece(this.hash, rook, rookTo);
-      this.pstScore[0][us] += PST_MG[4]![pstIndexOf(rookTo)] - PST_MG[4]![pstIndexOf(rookFrom)];
-      this.pstScore[1][us] += PST_EG[4]![pstIndexOf(rookTo)] - PST_EG[4]![pstIndexOf(rookFrom)];
+      this.pstScore[0][us] += pstWithMaterial(rook, rookTo, 0) - pstWithMaterial(rook, rookFrom, 0);
+      this.pstScore[1][us] += pstWithMaterial(rook, rookTo, 1) - pstWithMaterial(rook, rookFrom, 1);
     }
 
     // Counts + incremental PST.
@@ -527,15 +562,12 @@ export class Position {
     this.castling &= CASTLE_RIGHTS_MASK[from]! & CASTLE_RIGHTS_MASK[to]!;
     hashCastling(this.hash, this.castling);
 
-    // En-passant target: kept only when a capture is pseudo-legally available.
     this.ep = -1;
     if (flag === FLAG_DOUBLE) {
-      const behind = us === WHITE ? to - 16 : to + 16;
-      const theirPawn = us === WHITE ? 0x09 : 0x01;
-      const l = to - 1, r = to + 1;
-      if (((l & 0x88) === 0 && b[l] === theirPawn) || ((r & 0x88) === 0 && b[r] === theirPawn)) {
-        this.ep = behind;
-        hashEp(this.hash, behind & 7);
+      const target = us === WHITE ? to - 16 : to + 16;
+      if (this.epCapturable(target, them)) {
+        this.ep = target;
+        hashEp(this.hash, target & 7);
       }
     }
 
@@ -551,11 +583,13 @@ export class Position {
       hashChecks(this.hash, us, this.checksGiven[us]);
     }
     this.ply++;
+    this.moves.push(m);
     this.hashHistory.push(this.hash.lo, this.hash.hi);
     this.legalCache = null;
   }
 
   undoMove(): void {
+    if (!this.undoSp) return;
     const e = this.undo[--this.undoSp]!;
     if (e.move === 0) {
       this.undoNullEntry(e);
@@ -584,8 +618,9 @@ export class Position {
       const rookTo = flag === FLAG_CASTLE_K ? rookFrom - 2 : rookFrom + 3;
       b[rookFrom] = b[rookTo]!;
       b[rookTo] = EMPTY;
-      this.pstScore[0][us] -= PST_MG[4]![pstIndexOf(rookTo)] - PST_MG[4]![pstIndexOf(rookFrom)];
-      this.pstScore[1][us] -= PST_EG[4]![pstIndexOf(rookTo)] - PST_EG[4]![pstIndexOf(rookFrom)];
+      const rook = b[rookFrom]!;
+      this.pstScore[0][us] -= pstWithMaterial(rook, rookTo, 0) - pstWithMaterial(rook, rookFrom, 0);
+      this.pstScore[1][us] -= pstWithMaterial(rook, rookTo, 1) - pstWithMaterial(rook, rookFrom, 1);
     }
 
     // Counts + PST back.
@@ -607,6 +642,7 @@ export class Position {
     this.hash.lo = e.hashLo;
     this.hash.hi = e.hashHi;
     this.ply--;
+    this.moves.pop();
     this.hashHistory.length -= 2;
     this.legalCache = null;
   }
@@ -639,8 +675,6 @@ export class Position {
     this.legalCache = null;
   }
 
-  // ----------------------------------------------------------- game state
-
   /** King of the Hill: the king reached a center square (d4/e4/d5/e5). */
   kingOnHill(color: Color): boolean {
     const k = this.kings[color];
@@ -661,12 +695,24 @@ export class Position {
     return null;
   }
 
+  hasLegalMove(): boolean {
+    if (this.legalCache) return this.legalCache.length > 0;
+    const n = this.generateInto(this.genScratch);
+    for (let i = 0; i < n; i++) {
+      this.makeMove(this.genScratch[i]!);
+      const legal = !this.inCheck(other(this.stm));
+      this.undoMove();
+      if (legal) return true;
+    }
+    return false;
+  }
+
   isCheckmate(): boolean {
-    return this.inCheck() && this.getLegalMoves().length === 0;
+    return this.inCheck() && !this.hasLegalMove();
   }
 
   isStalemate(): boolean {
-    return !this.inCheck() && this.getLegalMoves().length === 0;
+    return !this.inCheck() && !this.hasLegalMove();
   }
 
   /** Occurrences of the current position (>= 3 = threefold repetition). */
@@ -704,6 +750,9 @@ export class Position {
     // King of the Hill: bare kings can still win by reaching the center,
     // so no material count is dead while the hill decides the game.
     if (this.variant === 'koth') return false;
+    if (this.variant === 'three-check') {
+      return this.counts.every((count, piece) => !count || typeOf(piece) === KING);
+    }
     let minors = 0;
     let bishops = 0;
     let bishopSquareColors = 0;
@@ -734,8 +783,6 @@ export class Position {
     return false;
   }
 
-  // -------------------------------------------------------------- helpers
-
   pieceAt(sq: number): number {
     return this.board[sq]!;
   }
@@ -756,7 +803,7 @@ export class Position {
 
   /** Finds + verifies a move from UCI text; returns the encoded move or null. */
   uciToMove(uci: string): number | null {
-    if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) return null;
+    if (typeof uci !== 'string' || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) return null;
     const from = fromAlgebraic(uci.slice(0, 2));
     const to = fromAlgebraic(uci.slice(2, 4));
     const promoChar = uci[4];
@@ -783,14 +830,19 @@ export class Position {
     return this.undoSp > 0;
   }
 
-  private epCapturable(): boolean {
-    const pawn = makePiece(PAWN, this.stm);
-    if (this.stm === WHITE) {
-      const s1 = this.ep - 15, s2 = this.ep - 17;
-      return ((s1 & 0x88) === 0 && this.board[s1] === pawn) || ((s2 & 0x88) === 0 && this.board[s2] === pawn);
+  private epCapturable(target: number, side: Color): boolean {
+    const b = this.board, step = side === WHITE ? 16 : -16;
+    const pawn = makePiece(PAWN, side), captured = target - step;
+    if (b[target] || b[captured] !== makePiece(PAWN, other(side))) return false;
+    for (const from of [captured - 1, captured + 1]) {
+      if (!onBoard(from) || b[from] !== pawn) continue;
+      // A pinned pawn cannot create a distinct repetition position.
+      b[from] = EMPTY; b[captured] = EMPTY; b[target] = pawn;
+      const legal = !this.isSquareAttacked(this.kings[side], other(side));
+      b[from] = pawn; b[captured] = makePiece(PAWN, other(side)); b[target] = EMPTY;
+      if (legal) return true;
     }
-    const s1 = this.ep + 15, s2 = this.ep + 17;
-    return ((s1 & 0x88) === 0 && this.board[s1] === pawn) || ((s2 & 0x88) === 0 && this.board[s2] === pawn);
+    return false;
   }
 }
 

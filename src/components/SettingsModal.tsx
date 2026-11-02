@@ -1,56 +1,63 @@
+import { ActionButton } from './ActionButton';
 /** Settings modal — board, gameplay, audio, accessibility, data. */
 import { useEffect, useRef, useState } from 'react';
 import { Modal } from './Modal';
-import { BoardTheme, PieceStyle, useSettings } from '../storage/settings';
-import { clearAll, exportAll, importAll, dbAvailable } from '../storage/db';
-import type { ExportBundle } from '../storage/db';
-import { wipeSettings } from '../storage/settings';
+import { BoardTheme, PieceStyle, useSettings, loadSettings } from '../storage/settings';
+import { resetAll, exportAll, importAll, dbAvailable } from '../storage/db';
 import { downloadFile } from '../utils';
 import { sound } from '../audio/sound';
 import { IconDownload, IconUpload } from './icons';
 import { useToast } from './Toast';
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
-  const { settings, update } = useSettings();
+  const { settings, update, reset } = useSettings();
   const { toast } = useToast();
   const [confirmReset, setConfirmReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const working = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const begin = () => { if (working.current) return false; working.current = true; setBusy(true); return true; };
+  const finish = () => { working.current = false; setBusy(false); };
+  const refresh = () => { window.dispatchEvent(new Event('checkmate:data-changed')); onClose(); };
 
   const doExport = async () => {
+    if (!begin()) return;
     try {
       const bundle = await exportAll();
       downloadFile(`checkmate-data-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(bundle, null, 2), 'application/json');
       toast('Data exported.', 'success');
     } catch {
       toast('Export failed.', 'danger');
-    }
+    } finally { finish(); }
   };
 
   const doImport = async (file: File) => {
+    if (!begin()) return;
     try {
-      const text = await file.text();
-      const bundle = JSON.parse(text) as ExportBundle;
-      const counts = await importAll(bundle);
-      toast(`Imported ${counts.games} games, ${counts.puzzles} puzzles and ${counts.education} lessons. Reloading…`, 'success');
-      setTimeout(() => window.location.reload(), 900);
+      if (file.size > 50 * 1024 * 1024) throw new Error('The backup exceeds 50 MB.');
+      const counts = await importAll(JSON.parse(await file.text()));
+      update(loadSettings());
+      toast(`Restored ${counts.games} games, ${counts.puzzles} puzzles and ${counts.education} lessons.${counts.persistent ? '' : ' Saving is unavailable; keep your backup.'}`, counts.persistent ? 'success' : 'default');
+      refresh();
     } catch (err) {
       toast(err instanceof Error ? `Import failed: ${err.message}` : 'Import failed — not a valid file.', 'danger');
-    }
+    } finally { finish(); }
   };
 
   const doReset = async () => {
+    if (!begin()) return;
     try {
-      await clearAll();
-      wipeSettings();
-      toast('All local data erased.');
-      setTimeout(() => window.location.reload(), 700);
+      const persistent = await resetAll();
+      reset();
+      toast(persistent ? 'All CHECKMATE data erased.' : 'Session data cleared. Browser storage could not be fully accessed.', persistent ? 'success' : 'default');
+      refresh();
     } catch {
-      toast('Reset failed.', 'danger');
-    }
+      toast('Reset failed. Existing records were not replaced.', 'danger');
+    } finally { finish(); }
   };
 
   return (
-    <Modal title="Settings" onClose={onClose} wide closeLabel="Close settings">
+    <Modal title="Settings" onClose={() => { if (!working.current) onClose(); }} wide busy={busy} closeLabel="Close settings">
       <section className="settings-section" aria-label="Board">
         <div className="panel-title">Board</div>
         <div className="panel-pad stack gap-12">
@@ -197,22 +204,24 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         </div>
       </section>
 
-      <section className="settings-section" aria-label="Data">
+      <section className="settings-section" aria-label="Data" aria-busy={busy}>
         <div className="panel-title">Data</div>
         <div className="panel-pad stack gap-12">
           <div className="row">
-            <button className="btn btn-sm" onClick={doExport}>
+            <ActionButton className="btn btn-sm" blockedReason={busy && 'A data operation is still running. Wait for it to finish before starting another action.'} onClick={doExport}>
               <IconDownload size={14} /> EXPORT DATA
-            </button>
-            <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>
+            </ActionButton>
+            <ActionButton className="btn btn-sm" blockedReason={busy && 'A data operation is still running. Wait for it to finish before starting another action.'} onClick={() => fileRef.current?.click()}>
               <IconUpload size={14} /> IMPORT DATA
-            </button>
+            </ActionButton>
             <input
               ref={fileRef}
+              tabIndex={-1}
               type="file"
               accept="application/json"
               className="sr-only"
               aria-label="Import data file"
+              disabled={busy}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) void doImport(f);
@@ -229,22 +238,30 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 Erase <strong>all</strong> local data — games, puzzle progress, lesson progress, Elo history and settings? This cannot be undone.
               </div>
               <div className="row">
-                <button className="btn btn-danger btn-sm" onClick={doReset}>
+                <ActionButton className="btn btn-danger btn-sm" blockedReason={busy && 'A data operation is still running. Wait for it to finish before starting another action.'} onClick={doReset}>
                   ERASE EVERYTHING
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setConfirmReset(false)}>
+                </ActionButton>
+                <ActionButton className="btn btn-ghost btn-sm" blockedReason={busy && 'A data operation is still running. Wait for it to finish before starting another action.'} onClick={() => setConfirmReset(false)}>
                   KEEP MY DATA
-                </button>
+                </ActionButton>
               </div>
             </div>
           ) : (
             <div>
-              <button className="btn btn-danger btn-sm" onClick={() => setConfirmReset(true)}>
+              <ActionButton className="btn btn-danger btn-sm" blockedReason={busy && 'A data operation is still running. Wait for it to finish before starting another action.'} onClick={() => setConfirmReset(true)}>
                 RESET ALL DATA
-              </button>
+              </ActionButton>
             </div>
           )}
           <StorageNote />
+        </div>
+      </section>
+      <section className="settings-section" aria-label="Licences">
+        <div className="panel-title">Licences</div>
+        <div className="panel-pad row wrap small">
+          <a href="./licenses/project.txt" target="_blank" rel="noopener noreferrer">Project MIT licence</a>
+          <a href="./licenses/third-party.txt" target="_blank" rel="noopener noreferrer">Third-party notices</a>
+          <a href="./licenses/opening-data.txt" target="_blank" rel="noopener noreferrer">Opening data · CC0</a>
         </div>
       </section>
     </Modal>

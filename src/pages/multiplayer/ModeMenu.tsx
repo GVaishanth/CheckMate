@@ -22,7 +22,7 @@ export function ModeMenu({ onPick }: { onPick: (m: Mode) => void }) {
           </div>
           <div className="mp-choice-title">DIRECT CONNECTION</div>
           <p className="small muted" style={{ margin: 0 }}>
-            Two browsers, one game. Exchange two short connection codes with your opponent — over
+            Two browsers, one game. Exchange two connection codes with your opponent — over
             any chat — then play over a direct WebRTC channel. The host validates every move.
           </p>
           <span className="mp-choice-cta">CREATE ROOM →</span>

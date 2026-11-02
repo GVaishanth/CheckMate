@@ -1,6 +1,7 @@
 /** Storage schema types. */
 import type { BotStyle } from '../engine/bots';
 import type { LessonProgress } from '../education/progress';
+import type { PuzzleStreak } from './streak';
 
 export interface MoveRecord {
   san: string;
@@ -19,7 +20,7 @@ export type GameOutcome =
   | { result: 'draw'; reason: DrawReason }
   | { result: 'unfinished' };
 
-export type DrawReason = 'stalemate' | 'agreement' | 'threefold' | 'fifty-move' | 'insufficient' | 'disconnect';
+export type DrawReason = 'stalemate' | 'agreement' | 'threefold' | 'fifty-move' | 'insufficient' | 'disconnect' | 'unspecified';
 
 export interface StoredGame {
   id: string;
@@ -44,11 +45,11 @@ export interface StoredGame {
 
 export interface GameAnalysis {
   /** Average centipawn loss per seat. */
-  whiteLossCp: number;
-  blackLossCp: number;
+  whiteLossCp?: number;
+  blackLossCp?: number;
   /** Accuracy 0..100 per seat. */
-  whiteAccuracy: number;
-  blackAccuracy: number;
+  whiteAccuracy?: number;
+  blackAccuracy?: number;
   /** Performance rating estimate for the human player (bot games). */
   performance?: number;
   analyzedAt: number;
@@ -86,6 +87,7 @@ export interface ExportBundle {
   elo: EloResult[];
   settings: string | null;
   education?: LessonProgress[];
+  puzzleStreak?: PuzzleStreak;
 }
 
 export interface BotRecord {

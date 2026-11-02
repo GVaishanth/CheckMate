@@ -67,14 +67,11 @@ export function fromAlgebraic(s: string): number {
 
 /** Mirrors a square vertically (used to mirror positions for puzzle variants). */
 export const mirrorSquare = (sq: number): number => sq ^ 0x70;
-
-// ---------------------------------------------------------------------------
 // Move encoding: a move is a single integer.
 //   bits 0..6   from square
 //   bits 7..13  to square
 //   bits 14..16 promotion piece type (0 = none)
 //   bits 17..19 special flag
-// ---------------------------------------------------------------------------
 
 export const FLAG_NORMAL = 0;
 export const FLAG_EN_PASSANT = 1;

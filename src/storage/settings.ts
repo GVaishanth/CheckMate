@@ -45,32 +45,48 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY = 'checkmate:settings';
 
+let sessionSettings: Settings | null = null;
+let settingsFailed = false;
+
+export function normaliseSettings(value: unknown): Settings {
+  const next = { ...DEFAULT_SETTINGS };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return next;
+  const row = value as Record<string, unknown>;
+  if (row.version !== undefined && row.version !== 1) return next;
+  for (const key of ['showCoordinates', 'showLegalMoves', 'animateMoves', 'autoQueen', 'confirmMoves', 'sound', 'uiSounds', 'highContrast', 'autoFlipLocal'] as const) {
+    if (typeof row[key] === 'boolean') next[key] = row[key];
+  }
+  if (['carbon', 'tournament', 'walnut', 'fog'].includes(row.boardTheme as string)) next.boardTheme = row.boardTheme as BoardTheme;
+  if (row.pieceStyle === 'vanguard' || row.pieceStyle === 'glyph') next.pieceStyle = row.pieceStyle;
+  if (row.reducedMotion === 'auto' || row.reducedMotion === 'on') next.reducedMotion = row.reducedMotion;
+  if (row.defaultOrientation === 'white' || row.defaultOrientation === 'black') next.defaultOrientation = row.defaultOrientation;
+  if (typeof row.volume === 'number' && Number.isFinite(row.volume)) next.volume = Math.max(0, Math.min(1, row.volume));
+  return next;
+}
+
 export function loadSettings(): Settings {
+  if (settingsFailed && sessionSettings) return { ...sessionSettings };
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
-    const parsed = JSON.parse(raw) as Partial<Settings>;
-    if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS };
-    return { ...DEFAULT_SETTINGS, ...parsed, version: 1 };
+    sessionSettings = normaliseSettings(raw ? JSON.parse(raw) : null);
+    return { ...sessionSettings };
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    return { ...(sessionSettings ?? DEFAULT_SETTINGS) };
   }
 }
 
-export function saveSettings(s: Settings): void {
+export function saveSettings(value: Settings): boolean {
+  sessionSettings = normaliseSettings(value);
   try {
-    localStorage.setItem(KEY, JSON.stringify(s));
-  } catch {
-    /* unavailable — session-only */
-  }
+    localStorage.setItem(KEY, JSON.stringify(sessionSettings));
+    settingsFailed = false; return true;
+  } catch { settingsFailed = true; return false; }
 }
 
-export function wipeSettings(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* ignore */
-  }
+export function wipeSettings(): boolean {
+  sessionSettings = null;
+  try { localStorage.removeItem(KEY); settingsFailed = false; return true; }
+  catch { settingsFailed = true; return false; }
 }
 
 // React context for the settings store (set up in App).

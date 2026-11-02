@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ActionButton } from '../../components/ActionButton';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { BoardAnimate, Orientation } from '../../components/Board';
 import { GameOver } from '../../components/GameOver';
 import { GameReview } from '../../components/GameReview';
@@ -8,10 +9,10 @@ import { useControllerVersion, useGameController, useOrientation } from '../../g
 import { endReasonText } from '../../game/analysis';
 import { endSoundFor, moveSoundName, sound } from '../../audio/sound';
 import { useSettings } from '../../storage/settings';
-import { gamesRepo, StoredGame } from '../../storage/db';
+import { gamesRepo, StoredGame, dataRevision } from '../../storage/db';
 import { exportPgn } from '../../chess/pgn';
 import { ChessVariant, WHITE, PieceType } from '../../chess/constants';
-import { uid } from '../../utils';
+import { uid, copyText } from '../../utils';
 import { DuelChrome } from './DuelChrome';
 import { fmtDur, outcomeOf, resultString } from './shared';
 
@@ -22,7 +23,8 @@ const VARIANTS: { id: ChessVariant; label: string }[] = [
 ];
 
 export function LocalGame({ onExit }: { onExit: () => void }) {
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
+  const revision = useRef(dataRevision());
   const { toast } = useToast();
   const [variant, setVariant] = useState<ChessVariant>('standard');
   const controller = useGameController(
@@ -30,8 +32,8 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
   );
   const version = useControllerVersion(controller);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [autoFlip, setAutoFlip] = useState(true);
-  const [orientation, flip] = useOrientation('white');
+  const autoFlip = settings.autoFlipLocal;
+  const [orientation, flip] = useOrientation(settings.defaultOrientation);
   const [animate, setAnimate] = useState<BoardAnimate | null>(null);
   const [saved, setSaved] = useState(false);
   const [gameOverOpen, setGameOverOpen] = useState(false);
@@ -63,11 +65,10 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
       outcome: outcomeOf(controller),
       durationMs: controller.durationMs,
     };
-    void gamesRepo.save(game);
+    void gamesRepo.save(game, revision.current);
     // NOTE: `saved` is deliberately not a dependency — the re-render it causes
     // would run this cleanup and cancel the reveal timer above.
     return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controller.phase, controller]);
 
   const onMove = (from: number, to: number, promo: PieceType | null): boolean => {
@@ -100,14 +101,14 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
         <div className="row wrap">
           <div className="seg seg-wrap" role="group" aria-label="Choose rules">
             {VARIANTS.map((v) => (
-              <button
+              <ActionButton
                 key={v.id}
                 aria-pressed={variant === v.id}
-                disabled={controller.moves.length > 0 && controller.phase === 'playing'}
+                blockedReason={controller.moves.length > 0 && controller.phase === 'playing' && 'Rules cannot change during a game. Finish this game before choosing different rules.'}
                 onClick={() => setVariant(v.id)}
               >
                 {v.label}
-              </button>
+              </ActionButton>
             ))}
           </div>
           <button
@@ -115,7 +116,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
             aria-pressed={autoFlip}
             title="Board turns to face whoever moves next"
             onClick={() => {
-              setAutoFlip((v) => !v);
+              update({ autoFlipLocal: !autoFlip });
               sound.play('uiTick');
             }}
           >
@@ -136,6 +137,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
         gameOver={
           gameOverOpen ? (
             <GameOver
+              onClose={() => setGameOverOpen(false)}
               winner={controller.end?.winner ?? null}
               outcome="side"
               reason={endReasonText(controller.end?.reason)}
@@ -170,16 +172,14 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
               <button
                 className="btn"
                 onClick={() =>
-                  void navigator.clipboard
-                    .writeText(
+                  void copyText(
                       exportPgn(
                         controller.position,
                         { Event: 'CHECKMATE Pass & Play', White: 'White', Black: 'Black', Result: resultString(controller) },
                         resultString(controller),
                       ),
                     )
-                    .then(() => toast('PGN copied.', 'success'))
-                    .catch(() => toast('Could not copy PGN.', 'danger'))
+                    .then((ok) => toast(ok ? 'PGN copied.' : 'Could not copy PGN.', ok ? 'success' : 'danger'))
                 }
               >
                 COPY PGN
@@ -190,12 +190,13 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
         }
       >
         <div className="row wrap">
-          <button className="btn btn-sm btn-danger" onClick={() => controller.resign(controller.turn)} disabled={controller.phase !== 'playing'}>
+          {controller.phase === 'ended' && !gameOverOpen && <button className="btn btn-sm" onClick={() => setGameOverOpen(true)}>RESULT</button>}
+          <ActionButton className="btn btn-sm btn-danger" onClick={() => controller.resign(controller.turn)} blockedReason={controller.phase !== 'playing' && 'This game has already ended. Open RESULT to start a new game.'}>
             RESIGN
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             className="btn btn-sm"
-            disabled={controller.phase !== 'playing'}
+            blockedReason={controller.phase !== 'playing' && 'This game has already ended. Open RESULT to start a new game.'}
             onClick={() => {
               if (drawArmed) {
                 controller.drawByAgreement();
@@ -207,19 +208,19 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
             }}
           >
             {drawArmed ? 'CONFIRM DRAW' : 'OFFER DRAW'}
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             className="btn btn-sm"
-            disabled={controller.moves.length === 0}
+            blockedReason={controller.phase !== 'playing' ? 'Finished games cannot be undone. Open RESULT to start a new game.' : controller.moves.length === 0 && 'There are no moves to undo yet. Play a move first.'}
             onClick={() => {
-              if (controller.undoPlies(1)) {
+              if (controller.phase === 'playing' && controller.undoPlies(1)) {
                 setAnimate(null);
                 sound.play('uiTick');
               }
             }}
           >
             UNDO
-          </button>
+          </ActionButton>
         </div>
       </DuelChrome>
       {reviewOpen && controller.phase === 'ended' && (

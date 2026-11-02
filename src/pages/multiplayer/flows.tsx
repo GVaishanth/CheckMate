@@ -1,3 +1,4 @@
+import { ActionButton } from '../../components/ActionButton';
 /** Connection-code exchange UI for the host and guest flows. */
 import { useState } from 'react';
 import { useToast } from '../../components/Toast';
@@ -5,6 +6,7 @@ import { sound } from '../../audio/sound';
 import { BLACK, Color, WHITE } from '../../chess/constants';
 import { PeerState } from '../../multiplayer/peer';
 import { IconCopy } from '../../components/icons';
+import { copyText } from '../../utils';
 
 export function CodeBox({ code, label }: { code: string; label: string }) {
   const { toast } = useToast();
@@ -14,18 +16,7 @@ export function CodeBox({ code, label }: { code: string; label: string }) {
       <textarea readOnly value={code} aria-label={label} onFocus={(e) => e.currentTarget.select()} />
       <button
         className="btn btn-sm"
-        onClick={() =>
-          void navigator.clipboard
-            .writeText(code)
-            .then(() => toast('Code copied — send it to your opponent.', 'success'))
-            .catch(() => {
-              // Fallback for non-secure contexts.
-              const el = document.querySelector<HTMLTextAreaElement>('.code-box textarea');
-              el?.select();
-              if (el && document.execCommand('copy')) toast('Code copied.', 'success');
-              else toast('Select the code and copy it manually.', 'default');
-            })
-        }
+        onClick={() => void copyText(code).then((ok) => toast(ok ? 'Code copied — send it to your opponent.' : 'Select the code and copy it manually.', ok ? 'success' : 'default'))}
       >
         <IconCopy size={14} /> COPY CODE
       </button>
@@ -53,23 +44,23 @@ export function HostFlow({
       <div className="panel-pad stack gap-16">
         <div className="field">
           <span className="field-label">Your name</span>
-          <input value={name} onChange={(e) => setName(e.target.value.slice(0, 18))} aria-label="Your name" />
+          <input value={name} disabled={created || state === 'creating'} onChange={(e) => setName(e.target.value.slice(0, 18))} aria-label="Your name" />
         </div>
         <div className="field">
           <span className="field-label">Your side</span>
           <div className="seg" role="group" aria-label="Choose side">
             {(['white', 'random', 'black'] as const).map((c) => (
-              <button key={c} aria-pressed={color === c} onClick={() => setColor(c)}>
+              <ActionButton key={c} blockedReason={created ? 'Your side is fixed in the room code. Start a new room to choose another side.' : state === 'creating' && 'The room code is being created. Wait for it to finish before changing sides.'} aria-pressed={color === c} onClick={() => setColor(c)}>
                 {c.toUpperCase()}
-              </button>
+              </ActionButton>
             ))}
           </div>
         </div>
         {!created ? (
           <div>
-            <button
+            <ActionButton
               className="btn btn-primary"
-              disabled={state === 'creating'}
+              blockedReason={state === 'creating' && 'The room code is being created. Wait for it to finish.'}
               onClick={() => {
                 const resolved: Color = color === 'random' ? (Math.random() < 0.5 ? WHITE : BLACK) : color === 'white' ? WHITE : BLACK;
                 sound.unlock();
@@ -77,7 +68,7 @@ export function HostFlow({
               }}
             >
               CREATE ROOM
-            </button>
+            </ActionButton>
           </div>
         ) : (
           <>
@@ -86,6 +77,7 @@ export function HostFlow({
               <span className="field-label">Step 2 — paste your opponent's reply code</span>
               <textarea
                 value={reply}
+                maxLength={65536}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Paste the reply code here…"
                 aria-label="Opponent reply code"
@@ -93,9 +85,9 @@ export function HostFlow({
               />
             </div>
             <div className="row">
-              <button className="btn btn-primary" disabled={reply.trim().length === 0} onClick={() => void onAnswer(reply)}>
+              <ActionButton className="btn btn-primary" blockedReason={state === 'connected' ? 'The room is already connected.' : state === 'connecting' ? 'The connection is being established. Keep this tab open and wait for the peer.' : reply.trim().length === 0 && 'Paste your opponent’s reply code before connecting.'} onClick={() => void onAnswer(reply)}>
                 CONNECT
-              </button>
+              </ActionButton>
               <span className="tiny faint" style={{ alignSelf: 'center' }}>
                 {state === 'connecting' ? 'Exchanging handshake…' : 'The game starts the moment the channel opens.'}
               </span>
@@ -128,12 +120,13 @@ export function GuestFlow({
           <>
             <div className="field">
               <span className="field-label">Your name</span>
-              <input value={name} onChange={(e) => setName(e.target.value.slice(0, 18))} aria-label="Your name" />
+              <input value={name} disabled={state === 'joining'} onChange={(e) => setName(e.target.value.slice(0, 18))} aria-label="Your name" />
             </div>
             <div className="field">
               <span className="field-label">Host's room code</span>
               <textarea
                 value={code}
+                maxLength={65536}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="Paste the room code here…"
                 aria-label="Host room code"
@@ -141,9 +134,9 @@ export function GuestFlow({
               />
             </div>
             <div>
-              <button className="btn btn-primary" disabled={code.trim().length === 0} onClick={() => { sound.unlock(); void onJoin(code, name); }}>
+              <ActionButton className="btn btn-primary" blockedReason={state === 'joining' ? 'The reply code is being generated. Wait for it to finish.' : code.trim().length === 0 && 'Paste the host’s room code before generating a reply.'} onClick={() => { sound.unlock(); void onJoin(code, name); }}>
                 GENERATE REPLY
-              </button>
+              </ActionButton>
             </div>
           </>
         ) : (

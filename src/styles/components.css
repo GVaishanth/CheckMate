@@ -1,8 +1,6 @@
-/* ============================================================
-   Components: buttons, panels, chips, inputs, overlays, states
-   ============================================================ */
 
-/* ------------------------------------------------- buttons */
+
+
 
 .btn[aria-pressed='true'] {
   border-color: var(--accent);
@@ -37,9 +35,8 @@
 
 .btn:active { transform: translateY(1px) scale(0.985); }
 
-.btn:disabled {
+.btn:disabled, .btn[aria-disabled='true'] {
   opacity: 0.38;
-  cursor: not-allowed;
   transform: none;
 }
 
@@ -88,7 +85,7 @@
 
 .btn-block { width: 100%; }
 
-/* ------------------------------------------------- panels */
+
 
 .panel {
   background: var(--bg-1);
@@ -112,7 +109,7 @@
   gap: var(--sp-2);
 }
 
-/* ------------------------------------------------- chips */
+
 
 .chip {
   display: inline-flex;
@@ -152,7 +149,7 @@
 
 .chip-row { display: flex; gap: var(--sp-2); }
 
-/* ------------------------------------------------- inputs */
+
 
 .input {
   width: 100%;
@@ -204,7 +201,7 @@ select.input {
   color: var(--text-3);
 }
 
-/* ------------------------------------------------- modal */
+
 
 .modal-scrim {
   position: fixed;
@@ -265,7 +262,7 @@ select.input {
 
 .modal-close:hover { color: var(--text-1); background: var(--bg-2); }
 
-/* ------------------------------------------------- toast */
+
 
 .toast-stack {
   position: fixed;
@@ -282,7 +279,7 @@ select.input {
 }
 
 .toast {
-  pointer-events: auto;
+  pointer-events: none;
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -300,7 +297,7 @@ select.input {
 .toast-danger { border-left-color: var(--danger); }
 .toast-success { border-left-color: var(--success); }
 
-/* ------------------------------------------------- misc */
+
 
 .divider {
   height: 1px;
@@ -390,7 +387,7 @@ kbd {
   border-right: 1px solid var(--line);
 }
 
-.seg button:last-child { border-right: 0; }
+.seg button:last-of-type { border-right: 0; }
 
 .seg button[aria-pressed='true'] {
   background: var(--accent-soft);
@@ -516,3 +513,7 @@ input[type='range']::-moz-range-thumb {
   height: 58px;
   border-bottom: 1px solid var(--line);
 }
+
+button:disabled { cursor: not-allowed; }
+button[aria-disabled='true'] { cursor: help; }
+[inert] .toast-stack { visibility: hidden; }

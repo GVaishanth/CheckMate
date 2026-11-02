@@ -28,17 +28,18 @@ const CommandContext = createContext<CommandContextValue>({
 export const useCommands = (): CommandContextValue => useContext(CommandContext);
 
 export function CommandRegistry({ children }: { children: React.ReactNode }) {
-  const [contextual, setContextual] = useState<Command[]>([]);
+  const [registrations, setRegistrations] = useState<Array<{ token: number; commands: Command[] }>>([]);
   const seq = useRef(0);
-
-  const register = useCallback((cmds: Command[]) => {
+  const register = useCallback((commands: Command[]) => {
     const token = ++seq.current;
-    setContextual((prev) => [...prev, ...cmds]);
-    return () => {
-      if (seq.current !== token && token === 0) return;
-      setContextual((prev) => prev.filter((c) => !cmds.some((x) => x.id === c.id)));
-    };
+    setRegistrations((previous) => [...previous, { token, commands }]);
+    return () => setRegistrations((previous) => previous.filter((entry) => entry.token !== token));
   }, []);
+  const contextual = useMemo(() => {
+    const unique = new Map<string, Command>();
+    for (const entry of registrations) for (const command of entry.commands) unique.set(command.id, command);
+    return [...unique.values()];
+  }, [registrations]);
 
   const value = useMemo(() => ({ register, commands: contextual }), [register, contextual]);
   return <CommandContext.Provider value={value}>{children}</CommandContext.Provider>;
@@ -47,11 +48,10 @@ export function CommandRegistry({ children }: { children: React.ReactNode }) {
 /** Hook pages use to expose their contextual commands. */
 export function useRegisterCommands(cmds: Command[]): void {
   const { register } = useCommands();
-  const key = useMemo(() => JSON.stringify(cmds.map((c) => c.id)), [cmds]);
+  const key = JSON.stringify(cmds.map(({ id, label, group, hint, keywords }) => ({ id, label, group, hint, keywords })));
   const latest = useRef(cmds);
   latest.current = cmds;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => register(latest.current), [key, register]);
+  useEffect(() => register(latest.current.map((command) => ({ ...command, run: () => latest.current.find((item) => item.id === command.id)?.run() }))), [key, register]);
 }
 
 /** Global navigation commands (used by the palette everywhere). */

@@ -13,7 +13,6 @@ export class ErrorScreen extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // eslint-disable-next-line no-console
     console.error('CHECKMATE crashed:', error, info.componentStack);
   }
 
@@ -25,7 +24,7 @@ export class ErrorScreen extends Component<{ children: ReactNode }, State> {
             <div className="mono tiny" style={{ color: 'var(--danger)', letterSpacing: '0.2em' }}>SYSTEM FAULT</div>
             <h2 style={{ margin: '10px 0', fontFamily: 'var(--font-display)' }}>Something broke mid-game.</h2>
             <p className="muted small">
-              An unexpected error stopped the interface. Your saved games and settings are safe on this device.
+              An unexpected error stopped the interface. Restart to try again; unsaved games and session-only progress may be lost.
             </p>
             <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => window.location.reload()}>
               Restart CHECKMATE

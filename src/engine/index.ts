@@ -51,7 +51,7 @@ export function findBestMove(
 }
 
 /** Bot move selection: book → search → personality (noise / blunder). */
-export function botMove(position: Position, style: BotStyle, seed = Date.now() & 0xffffffff): BotDecision {
+export function botMove(position: Position, style: BotStyle, seed = Date.now() & 0xffffffff, onDepth?: (p: { depth: number; score: number; nodes: number; ms: number }) => void): BotDecision {
   const rng = mulberry32(seed);
 
   const hit = style.bookPly > 0 ? bookMove(position, rng, style.bookPly) : null;
@@ -64,6 +64,7 @@ export function botMove(position: Position, style: BotStyle, seed = Date.now() &
     profile: style.profile,
     quiescence: style.quiescence,
     rankRoot: style.rankRoot,
+    onDepth,
   });
 
   if (!result.rootScores.length) return { uci: null, fromBook: false, score: 0, depth: 0, nodes: 0, ms: 0, pv: [] };
@@ -110,9 +111,10 @@ export function analyzeMoveQuality(
   position: Position,
   playedUci: string,
   depth = 8,
+  softMs = 500,
 ): { lossCp: number; bestUci: string; bestScore: number; playedScore: number } {
   const searcher = new Searcher(sharedTt);
-  const before = searcher.search(position.clone(), { maxDepth: depth, softMs: 0 }, { profile: 'full', quiescence: true });
+  const before = searcher.search(position.clone(), { maxDepth: depth, softMs }, { profile: 'full', quiescence: true });
   const bestScore = before.score;
   const bestUci = moveToUci(before.bestMove);
 
@@ -122,7 +124,7 @@ export function analyzeMoveQuality(
   after.makeMove(played);
 
   const s2 = new Searcher(sharedTt);
-  const afterResult = s2.search(after, { maxDepth: Math.max(1, depth - 1), softMs: 0 }, { profile: 'full', quiescence: true });
+  const afterResult = s2.search(after, { maxDepth: Math.max(1, depth - 1), softMs }, { profile: 'full', quiescence: true });
   const playedScore = -afterResult.score;
   return { lossCp: Math.max(0, bestScore - playedScore), bestUci, bestScore, playedScore };
 }
